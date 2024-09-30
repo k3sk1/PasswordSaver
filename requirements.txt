@@ -1,5 +1,6 @@
 cffi==1.17.1
 cryptography==43.0.1
+numpy==1.24.4
 pycparser==2.22
 PySide2==5.15.2.1
 shiboken2==5.15.2.1

@@ -1,9 +1,7 @@
-# src/main.py
-
 import sys
 from PySide2.QtWidgets import QApplication, QDialog
 from gui.login_dialog import LoginDialog
-from gui.main_window import MainWindow  # Importer MainWindow
+from gui.main_window import MainWindow
 
 
 def main():

@@ -1,5 +1,3 @@
-# src/gui/login_dialog.py
-
 from PySide2.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
 
 
