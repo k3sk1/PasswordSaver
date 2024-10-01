@@ -2,10 +2,14 @@ import sys
 from PySide2.QtWidgets import QApplication, QDialog
 from gui.login_dialog import LoginDialog
 from gui.main_window import MainWindow
+import styles
 
 
 def main():
     app = QApplication(sys.argv)
+
+    # Sett global font
+    app.setFont(styles.GLOBAL_FONT)
 
     login_dialog = LoginDialog()
     if login_dialog.exec_() == QDialog.Accepted:

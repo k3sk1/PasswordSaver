@@ -1,21 +1,19 @@
-from PySide2.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
+from PySide2.QtWidgets import QWidget, QLabel, QVBoxLayout
 from PySide2.QtCore import Qt
+
+import styles
 
 
 class PlaceholderWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setStyleSheet("background-color: #ffad8d;")
-
+        self.setStyleSheet("background-color: #fcd4a0;")
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
-
-        message_label = QLabel("Velkommen til Password Saver")
-        message_label.setAlignment(Qt.AlignCenter)
-        font = message_label.font()
-        font.setPointSize(18)
-        message_label.setFont(font)
-
-        layout.addWidget(message_label)
         self.setLayout(layout)
+
+        label = QLabel("Velkommen til Password Saver!")
+        label.setAlignment(Qt.AlignCenter)
+        label.setStyleSheet(styles.LABEL_STYLE)
+
+        layout.addWidget(label)

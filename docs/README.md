@@ -5,3 +5,4 @@
 ## functonality
 - ability to generate new passwords
 - back up
+- ability to store passwords used in real world
