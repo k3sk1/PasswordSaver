@@ -9,13 +9,28 @@ from PySide2.QtWidgets import (
     QStackedWidget,
     QAction,
     QApplication,
+    QInputDialog,
+    QLineEdit,
+    QDialog,
+    QListWidget,
+    QListWidgetItem,
 )
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
 from gui.add_password_widget import AddPasswordWidget
+from gui.create_database_widget import CreateDatabaseWidget
 from gui.placeholder_widget import PlaceholderWidget
 from gui.settings_widget import SettingsWidget
 import styles
+
+from data.encryption import derive_key, encrypt_password, decrypt_password
+from data.database import get_engine, create_tables, get_session
+from data.models import PasswordEntry
+
+import os
+import json
+import base64
+import sys
 
 
 class MainWindow(QMainWindow):
@@ -25,6 +40,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Password Saver")
         # Sett en fast størrelse på vinduet
         self.resize(1000, 800)
+
+        # Initialize key and session
+        self.key = None
+        self.session = None
 
         # Opprett hovedwidget og layout
         self.central_widget = QWidget()
@@ -45,6 +64,7 @@ class MainWindow(QMainWindow):
         # Opprett widgets uten å sette forelder
         self.placeholder_widget = PlaceholderWidget()
         self.add_password_widget = AddPasswordWidget()
+        self.create_database_widget = CreateDatabaseWidget()
 
         # Hvis du har en widget for å vise passord, opprett den her
         # self.view_password_widget = ViewPasswordWidget()
@@ -57,16 +77,27 @@ class MainWindow(QMainWindow):
         self.settings_widget.settings_changed.connect(self.apply_font_and_switch)
         self.settings_widget.settings_cancelled.connect(self.switch_back)
 
+        # Koble signal fra CreateDatabaseWidget til en metode
+        self.create_database_widget.database_created.connect(self.on_database_created)
+
+        self.add_password_widget.password_saved.connect(self.save_password)
+
         # Legg widgets til stacken
         self.stack.addWidget(self.placeholder_widget)  # Indeks 0
         self.stack.addWidget(self.add_password_widget)  # Indeks 1
-        self.stack.addWidget(self.settings_widget)  # Indeks 2
+        self.stack.addWidget(self.create_database_widget)  # Indeks 2
+        self.stack.addWidget(self.settings_widget)  # Indeks 3
 
         # Skjul alle widgets ved oppstart
         self.stack.setCurrentWidget(self.placeholder_widget)
 
         # Sett global font
         self.apply_font((self.font().family(), self.font().pointSize()))
+
+        # Forsøk å laste eksisterende database
+        if self.load_existing_database():
+            # Database er lastet inn, kan vise andre widgets om nødvendig
+            pass
 
         # Vis vinduet
         self.show()
@@ -104,9 +135,45 @@ class MainWindow(QMainWindow):
         # Legg til sidepanelet i hovedlayouten
         main_layout.addWidget(side_panel)
 
+    def load_existing_database(self):
+        # Få den absolutte stien til 'data' mappen
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(current_dir, "..", "data")
+        salt_file = os.path.join(data_dir, "salt.json")
+        db_path = os.path.join(data_dir, "passwords.db")
+
+        if os.path.exists(salt_file) and os.path.exists(db_path):
+            try:
+                with open(salt_file, "r") as f:
+                    data = json.load(f)
+                    salt = base64.b64decode(data["salt"])
+                    key = data["key"].encode()
+
+                # Sett opp databasen
+                engine = get_engine(db_path)
+                create_tables(engine)
+                session = get_session(engine)
+
+                # Sett key og session
+                self.key = key
+                self.session = session
+
+                return True
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Feil", f"Kunne ikke laste eksisterende database: {str(e)}"
+                )
+                return False
+        else:
+            return False
+
     def show_add_password_widget(self):
-        # Bytt til add_password_widget i stacken
-        self.stack.setCurrentWidget(self.add_password_widget)
+        if self.is_database_setup():
+            # Database er satt opp, vis AddPasswordWidget
+            self.stack.setCurrentWidget(self.add_password_widget)
+        else:
+            # Database er ikke satt opp, vis CreateDatabaseWidget
+            self.stack.setCurrentWidget(self.create_database_widget)
 
     def show_view_password_widget(self):
         # Hvis du har implementert view_password_widget, bytt til den
@@ -114,7 +181,40 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Info", "Funksjonalitet under utvikling.")
 
     def save_password(self, data):
-        pass
+        # Krypter passordet
+        encrypted_password = encrypt_password(data["password"], self.key)
+
+        # Opprett PasswordEntry objekt
+        entry = PasswordEntry(
+            service=data["website"],
+            email=data["email"],
+            username=data["username"] if data["username"] else "",
+            encrypted_password=encrypted_password,
+            website=data["website"],
+            link=data["link"] if data["link"] else "",
+            tag=data["tag"] if data["tag"] else "",
+        )
+
+        # Legg til i databasen
+        self.session.add(entry)
+        self.session.commit()
+        self.stack.setCurrentWidget(self.placeholder_widget)
+
+    def is_database_setup(self):
+        """
+        Sjekk om databasen er satt opp ved å sjekke om session og key er satt.
+        """
+        return self.session is not None and self.key is not None
+
+    def on_database_created(self):
+        """
+        Kalles når databasen er opprettet fra CreateDatabaseWidget.
+        """
+        # Sett key og session fra CreateDatabaseWidget
+        self.key = self.create_database_widget.key
+        self.session = self.create_database_widget.session
+        # Bytt til AddPasswordWidget
+        self.stack.setCurrentWidget(self.add_password_widget)
 
     def view_passwords(self):
         pass

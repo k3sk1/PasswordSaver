@@ -7,12 +7,15 @@ from PySide2.QtWidgets import (
     QVBoxLayout,
     QMessageBox,
 )
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, Signal
 from PySide2.QtGui import QFont
 import styles
 
 
 class AddPasswordWidget(QWidget):
+    # Definer en signal som emitteres når passordet er lagret
+    password_saved = Signal(dict)
+
     def __init__(self):
         super().__init__()
 
@@ -102,9 +105,8 @@ class AddPasswordWidget(QWidget):
                 self, "Feil", "Vennligst fyll ut alle obligatoriske felt."
             )
             return
-        # Lagre dataene (du må implementere lagringsfunksjonen i MainWindow)
-        # self.parent().save_password(data)
-        QMessageBox.information(self, "Suksess", "Passord lagret.")
+        # Emit signal med data
+        self.password_saved.emit(data)
         # Tøm feltene etter lagring
         self.clear_fields()
 

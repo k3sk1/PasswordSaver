@@ -22,16 +22,18 @@ class SettingsWidget(QWidget):
         self.setWindowTitle("Innstillinger")
 
         # Font familie
-        font_label = QLabel("Font Familie:")
+        font_label = QLabel("Font familie:")
         self.font_combo = QComboBox()
         self.font_combo.addItems(QFontDatabase().families())
         self.font_combo.setCurrentText(current_font_family)
+        self.font_combo.setMaximumWidth(300)
 
         # Font størrelse
-        size_label = QLabel("Font Størrelse:")
+        size_label = QLabel("Font størrelse:")
         self.size_spin = QSpinBox()
         self.size_spin.setRange(8, 72)
         self.size_spin.setValue(current_font_size)
+        self.size_spin.setMaximumWidth(50)
 
         # ok og Avbryt knapper
         apply_button = QPushButton("Ok")
@@ -58,6 +60,7 @@ class SettingsWidget(QWidget):
         main_layout.addLayout(font_layout)
         main_layout.addLayout(size_layout)
         main_layout.addLayout(button_layout)
+        main_layout.addStretch()
 
         self.setLayout(main_layout)
 
