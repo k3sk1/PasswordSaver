@@ -33,7 +33,7 @@ class SettingsWidget(QWidget):
         self.size_spin = QSpinBox()
         self.size_spin.setRange(8, 72)
         self.size_spin.setValue(current_font_size)
-        self.size_spin.setMaximumWidth(50)
+        self.size_spin.setMaximumWidth(60)
 
         # ok og Avbryt knapper
         apply_button = QPushButton("Ok")

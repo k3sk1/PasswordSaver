@@ -14,6 +14,7 @@ from PySide2.QtWidgets import (
     QDialog,
     QListWidget,
     QListWidgetItem,
+    QHeaderView,
 )
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
@@ -21,6 +22,7 @@ from gui.add_password_widget import AddPasswordWidget
 from gui.create_database_widget import CreateDatabaseWidget
 from gui.placeholder_widget import PlaceholderWidget
 from gui.settings_widget import SettingsWidget
+from gui.show_password_widget import ShowPasswordWidget
 import styles
 
 from data.encryption import derive_key, encrypt_password, decrypt_password
@@ -65,21 +67,15 @@ class MainWindow(QMainWindow):
         self.placeholder_widget = PlaceholderWidget()
         self.add_password_widget = AddPasswordWidget()
         self.create_database_widget = CreateDatabaseWidget()
-
-        # Hvis du har en widget for å vise passord, opprett den her
-        # self.view_password_widget = ViewPasswordWidget()
-
         self.settings_widget = SettingsWidget(
             current_font_family=self.font().family(),
             current_font_size=self.font().pointSize(),
         )
-        # Koble signaler til slots
+
+        # Kobler signaler
         self.settings_widget.settings_changed.connect(self.apply_font_and_switch)
         self.settings_widget.settings_cancelled.connect(self.switch_back)
-
-        # Koble signal fra CreateDatabaseWidget til en metode
         self.create_database_widget.database_created.connect(self.on_database_created)
-
         self.add_password_widget.password_saved.connect(self.save_password)
 
         # Legg widgets til stacken
@@ -96,7 +92,6 @@ class MainWindow(QMainWindow):
 
         # Forsøk å laste eksisterende database
         if self.load_existing_database():
-            # Database er lastet inn, kan vise andre widgets om nødvendig
             pass
 
         # Vis vinduet
@@ -121,7 +116,7 @@ class MainWindow(QMainWindow):
 
         # Koble knappene til funksjoner
         add_password_button.clicked.connect(self.show_add_password_widget)
-        view_password_button.clicked.connect(self.view_passwords)
+        view_password_button.clicked.connect(self.show_show_password_widget)
         settings_button.clicked.connect(self.open_settings)
 
         # Legg knappene til i layouten
@@ -175,10 +170,18 @@ class MainWindow(QMainWindow):
             # Database er ikke satt opp, vis CreateDatabaseWidget
             self.stack.setCurrentWidget(self.create_database_widget)
 
-    def show_view_password_widget(self):
-        # Hvis du har implementert view_password_widget, bytt til den
-        # self.stack.setCurrentWidget(self.view_password_widget)
-        QMessageBox.information(self, "Info", "Funksjonalitet under utvikling.")
+    def show_show_password_widget(self):
+        if self.is_database_setup():
+            # Sjekk om ShowPasswordWidget allerede er instansiert
+            if not hasattr(self, "show_password_widget"):
+                # Instansier ShowPasswordWidget hvis den ikke allerede er instansiert
+                self.show_password_widget = ShowPasswordWidget(self.session, self.key)
+                self.stack.addWidget(self.show_password_widget)
+            # Last inn passordene når widgeten skal vises
+            self.show_password_widget.load_passwords()
+            self.stack.setCurrentWidget(self.show_password_widget)
+        else:
+            self.stack.setCurrentWidget(self.create_database_widget)
 
     def save_password(self, data):
         # Krypter passordet
@@ -198,7 +201,6 @@ class MainWindow(QMainWindow):
         # Legg til i databasen
         self.session.add(entry)
         self.session.commit()
-        self.stack.setCurrentWidget(self.placeholder_widget)
 
     def is_database_setup(self):
         """
@@ -213,6 +215,11 @@ class MainWindow(QMainWindow):
         # Sett key og session fra CreateDatabaseWidget
         self.key = self.create_database_widget.key
         self.session = self.create_database_widget.session
+
+        # Instansier ShowPasswordWidget nå som session og key er satt
+        self.show_password_widget = ShowPasswordWidget(self.session, self.key)
+        self.stack.addWidget(self.show_password_widget)
+
         # Bytt til AddPasswordWidget
         self.stack.setCurrentWidget(self.add_password_widget)
 
@@ -231,6 +238,9 @@ class MainWindow(QMainWindow):
         # Rekursivt sette font på alle widgets, inkludert statuslinjen
         self.set_font_recursively(self, new_font)
 
+        # Oppdater kolonnebredder
+        self.show_password_widget.update_column_widths()
+
     def switch_back(self):
         # Bytt tilbake til placeholder uten å endre font
         self.stack.setCurrentWidget(self.placeholder_widget)
@@ -245,3 +255,27 @@ class MainWindow(QMainWindow):
         widget.setFont(font)
         for child in widget.findChildren(QWidget):
             self.set_font_recursively(child, font)
+
+    def update_column_widths(self):
+        header = self.table.horizontalHeader()
+
+        # Oppdater minimumsbredde for Brukernavn basert på header
+        font_metrics = self.table.fontMetrics()
+        header_text = "Brukernavn"
+        min_width = font_metrics.horizontalAdvance(header_text) + 20
+        self.table.setColumnWidth(2, max(150, min_width))
+
+        # Passord (Kolonne 3) og Tag (Kolonne 5) har faste bredder
+        self.table.setColumnWidth(3, 100)  # Passord
+        self.table.setColumnWidth(5, 150)  # Tag
+
+        # Oppdater kolonnebredder basert på innhold
+        self.table.resizeColumnsToContents()
+
+        # Juster kolonnene igjen for å sikre at Stretch fungerer som forventet
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.Stretch)
+        header.setSectionResizeMode(5, QHeaderView.Fixed)

@@ -1,4 +1,4 @@
-# new project
+# ProjectName
 
 ## color palette: https://www.schemecolor.com/vintage-glass.php
 
