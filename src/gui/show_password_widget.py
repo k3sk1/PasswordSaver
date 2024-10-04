@@ -13,7 +13,7 @@ from PySide2.QtWidgets import (
 )
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
-from PySide2.QtWidgets import QHeaderView  # Importer QHeaderView
+from PySide2.QtWidgets import QHeaderView
 from data.models import PasswordEntry
 from data.encryption import decrypt_password
 import styles
@@ -61,42 +61,6 @@ class ShowPasswordWidget(QWidget):
         button_layout.addStretch()
         button_layout.addWidget(self.copy_button)
         main_layout.addLayout(button_layout)
-
-    # def setup_table(self):
-    #     # Opprett tabell
-    #     self.table = QTableWidget()
-    #     self.table.setColumnCount(6)
-    #     self.table.setHorizontalHeaderLabels(
-    #         ["Tjeneste", "E-post", "Brukernavn", "Passord", "Link", "Tag"]
-    #     )
-
-    #     header = self.table.horizontalHeader()
-    #     header.setSectionResizeMode(QHeaderView.Stretch)  # Stretch alle kolonner
-
-    #     # Juster spesifikke kolonner
-    #     # Brukernavn (Kolonne 2): Minimumsbredde
-    #     header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-    #     self.table.setColumnWidth(2, 150)  # Minimumsbredde for Brukernavn
-
-    #     # Passord (Kolonne 3): Maksimumsbredde
-    #     header.setSectionResizeMode(3, QHeaderView.Fixed)
-    #     self.table.setColumnWidth(3, 100)  # Maksimumsbredde for Passord
-
-    #     # Tag (Kolonne 5): Maksimumsbredde
-    #     header.setSectionResizeMode(5, QHeaderView.Fixed)
-    #     self.table.setColumnWidth(5, 150)  # Maksimumsbredde for Tag
-
-    #     # Sett sizePolicy for å fylle plassen dynamisk
-    #     self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-    #     self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-    #     self.table.setSelectionBehavior(QTableWidget.SelectRows)
-    #     self.table.setSelectionMode(QTableWidget.SingleSelection)
-    #     self.table.cellDoubleClicked.connect(self.view_password)
-
-    #     # Legg til tabellen i layouten
-    #     main_layout = self.layout()
-    #     main_layout.addWidget(self.table)
 
     def setup_table(self):
         # Opprett tabell
@@ -158,7 +122,7 @@ class ShowPasswordWidget(QWidget):
         self.table.setItem(row_position, 1, QTableWidgetItem(entry.email))
         self.table.setItem(row_position, 2, QTableWidgetItem(entry.username))
         # For passordet, vis stjerner eller kryptert tekst
-        self.table.setItem(row_position, 3, QTableWidgetItem("*" * 10))  # Placeholder
+        self.table.setItem(row_position, 3, QTableWidgetItem("*" * 4))  # Placeholder
         self.table.setItem(row_position, 4, QTableWidgetItem(entry.link))
         self.table.setItem(row_position, 5, QTableWidgetItem(entry.tag))
 

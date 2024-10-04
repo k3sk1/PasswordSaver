@@ -12,6 +12,7 @@ QLineEdit {
 }
 """
 
+
 BUTTON_STYLE = """
 QPushButton {
     background-color: #4CAF50;

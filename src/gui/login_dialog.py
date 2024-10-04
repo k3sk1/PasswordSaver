@@ -14,22 +14,39 @@ import styles
 
 
 class LoginDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, existing=False, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Innlogging")
-        self.setFixedSize(350, 250)
+        self.existing = existing  # Lagre parameteren
+
+        self.setWindowTitle("Innlogging" if existing else "Opprett Masterpassord")
+        self.setFixedSize(500, 300)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
         # Opprett etiketter og inngangsfelt
-        self.password_label = QLabel("Innlogging")
-        self.password_label.setAlignment(Qt.AlignCenter)
-        self.password_label.setStyleSheet(styles.LABEL_STYLE)
+        if existing:
+            self.label = QLabel("Skriv inn ditt hovedpassord")
+        else:
+            self.label = QLabel("Opprett et nytt hovedpassord")
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setStyleSheet(styles.LABEL_STYLE)
+
         self.password_input = QLineEdit()
         self.password_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setPlaceholderText("Skriv inn ditt hovedpassord")
         self.password_input.setMinimumWidth(200)
+
+        if not existing:
+            self.confirm_label = QLabel("Bekreft hovedpassord")
+            self.confirm_label.setAlignment(Qt.AlignCenter)
+            self.confirm_label.setStyleSheet(styles.LABEL_STYLE)
+
+            self.confirm_password_input = QLineEdit()
+            self.confirm_password_input.setStyleSheet(styles.LINE_EDIT_STYLE)
+            self.confirm_password_input.setEchoMode(QLineEdit.Password)
+            self.confirm_password_input.setPlaceholderText("Bekreft ditt hovedpassord")
+            self.confirm_password_input.setMinimumWidth(200)
 
         # Ok og Avbryt knapper
         ok_button = QPushButton("OK")
@@ -49,11 +66,21 @@ class LoginDialog(QDialog):
         button_layout.addStretch()
 
         main_layout = QVBoxLayout()
-        main_layout.addWidget(self.password_label)
+        main_layout.addWidget(self.label)
         main_layout.addWidget(self.password_input)
+
+        if not existing:
+            main_layout.addWidget(self.confirm_label)
+            main_layout.addWidget(self.confirm_password_input)
+
         main_layout.addLayout(button_layout)
 
         self.setLayout(main_layout)
 
     def get_password(self):
         return self.password_input.text()
+
+    def get_confirm_password(self):
+        if not self.existing:
+            return self.confirm_password_input.text()
+        return None

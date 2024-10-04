@@ -2,6 +2,7 @@
 __pycache__/
 passwords.db
 src/data/salt.json
+/config/config.json
 *.py[cod]
 *$py.class
 
