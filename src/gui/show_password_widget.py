@@ -11,7 +11,7 @@ from PySide2.QtWidgets import (
     QApplication,
     QSizePolicy,
 )
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, Signal
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QHeaderView
 from data.models import PasswordEntry
@@ -20,6 +20,8 @@ import styles
 
 
 class ShowPasswordWidget(QWidget):
+    row_deleted = Signal()
+
     def __init__(self, session, key):
         super().__init__()
 
@@ -52,14 +54,21 @@ class ShowPasswordWidget(QWidget):
         # Sett opp tabellen
         self.setup_table()
 
-        # Kopier passord-knapp
+        # Oppretter knapper
         self.copy_button = QPushButton("Kopier passord til utklippstavle")
+        self.delete_button = QPushButton("Slett passord (rad)")
         self.copy_button.setStyleSheet(styles.BUTTON_STYLE)
+        self.delete_button.setStyleSheet(styles.BUTTON_STYLE2)
         self.copy_button.clicked.connect(self.copy_password)
+        self.delete_button.clicked.connect(self.delete_row)
 
+        # Opprett horisontal layout for knappene
         button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        button_layout.addStretch()  # Skyver knappene til høyre (valgfritt)
         button_layout.addWidget(self.copy_button)
+        button_layout.addWidget(self.delete_button)
+        button_layout.addStretch()  # Skyver knappene til venstre og høyre (valgfritt)
+
         main_layout.addLayout(button_layout)
 
     def setup_table(self):
@@ -205,3 +214,76 @@ class ShowPasswordWidget(QWidget):
                 )
         except Exception as e:
             QMessageBox.critical(self, "Feil", f"Kunne ikke kopiere passord: {str(e)}")
+
+    def delete_row(self):
+        selected_items = self.table.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(
+                self, "Ingen Valgt", "Vennligst velg et passord fra tabellen."
+            )
+            return
+
+        # Hent raden som er valgt
+        row = selected_items[0].row()
+
+        # Hent data fra de nødvendige kolonnene
+        service = self.table.item(row, 0).text()
+        email = self.table.item(row, 1).text()
+        username = self.table.item(row, 2).text()
+        link = self.table.item(row, 4).text()
+        tag = self.table.item(row, 5).text()
+
+        # Bekreft med brukeren før sletting
+        reply = QMessageBox.question(
+            self,
+            "Bekreft Sletting",
+            f"Er du sikker på at du vil slette passordet for tjeneste '{service}'?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                # Finn det aktuelle PasswordEntry-objektet i databasen
+                entry = (
+                    self.session.query(PasswordEntry)
+                    .filter_by(
+                        service=service,
+                        email=email,
+                        username=username,
+                        link=link,
+                        tag=tag,
+                    )
+                    .first()
+                )
+
+                if entry:
+                    # Slett objektet fra databasen
+                    self.session.delete(entry)
+                    self.session.commit()
+
+                    # Fjern raden fra tabellen
+                    self.table.removeRow(row)
+
+                    QMessageBox.information(
+                        self,
+                        "Slettet",
+                        f"Passordet for tjeneste '{service}' er slettet.",
+                        QMessageBox.Ok,
+                    )
+                    # Emit signal for å oppdatere knappestatusene
+                    self.row_deleted.emit()
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Ikke Funnet",
+                        "Passordet ble ikke funnet i databasen.",
+                        QMessageBox.Ok,
+                    )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Feil",
+                    f"Kunne ikke slette passordet: {str(e)}",
+                    QMessageBox.Ok,
+                )

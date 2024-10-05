@@ -26,6 +26,19 @@ QPushButton:hover {
 }
 """
 
+BUTTON_STYLE2 = """
+QPushButton {
+    background-color: #d11a2a;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 5px;
+}
+QPushButton:hover {
+    background-color: #45a049;
+}
+"""
+
 LABEL_STYLE = """
 QLabel {
     font-weight: bold;

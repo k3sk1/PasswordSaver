@@ -84,6 +84,7 @@ class MainWindow(QMainWindow):
         self.settings_widget.settings_cancelled.connect(self.switch_back)
         self.add_password_widget.password_saved.connect(self.save_password)
         self.backup_widget.sync_completed.connect(self.update_button_states)
+        self.show_password_widget.row_deleted.connect(self.update_button_states)
 
         # Legg widgets til stacken
         self.stack.addWidget(self.placeholder_widget)  # Indeks 0
