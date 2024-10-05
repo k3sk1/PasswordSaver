@@ -1,0 +1,1 @@
+Her kommer retningslinjer for hvordan man kan bidra til prosjektet.
