@@ -1,22 +1,13 @@
-# gui/main_window.py
-
+import os
 from PySide2.QtWidgets import (
     QMainWindow,
-    QStatusBar,
     QPushButton,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QMessageBox,
     QStackedWidget,
-    QAction,
     QApplication,
-    QInputDialog,
-    QLineEdit,
-    QDialog,
-    QListWidget,
-    QListWidgetItem,
-    QHeaderView,
 )
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
@@ -25,16 +16,10 @@ from gui.placeholder_widget import PlaceholderWidget
 from gui.settings_widget import SettingsWidget
 from gui.show_password_widget import ShowPasswordWidget
 from gui.backup_widget import BackupWidget
-import styles
 
-from data.encryption import derive_key, encrypt_password, decrypt_password
-from data.database import get_engine, create_tables, get_session
-from data.models import PasswordEntry, User, Settings
-
-import os
-import json
-import base64
-import sys
+from data.encryption import encrypt_password
+from data.models import PasswordEntry, Settings
+from utils.login_manager import restart_app
 
 
 class MainWindow(QMainWindow):
@@ -137,12 +122,16 @@ class MainWindow(QMainWindow):
         view_password_button = QPushButton("Vis passord")
         backup_button = QPushButton("Sikkerhetskopiering")
         settings_button = QPushButton("Innstillinger")
+        log_out_button = QPushButton("logg ut og bytt bruker")
+        log_out_quit_button = QPushButton("Logg ut og avslutt")
 
         # Koble knappene til funksjoner
         add_password_button.clicked.connect(self.show_add_password_widget)
         view_password_button.clicked.connect(self.show_show_password_widget)
         backup_button.clicked.connect(self.show_backup_widget)
         settings_button.clicked.connect(self.open_settings)
+        log_out_button.clicked.connect(self.log_out)
+        log_out_quit_button.clicked.connect(self.log_out_quit)
 
         # Lagre referansene som instansvariabler
         self.view_password_button = view_password_button
@@ -153,6 +142,8 @@ class MainWindow(QMainWindow):
         side_layout.addWidget(view_password_button)
         side_layout.addWidget(backup_button)
         side_layout.addWidget(settings_button)
+        side_layout.addWidget(log_out_button)
+        side_layout.addWidget(log_out_quit_button)
 
         # Legg til sidepanelet i hovedlayouten
         main_layout.addWidget(side_panel)
@@ -270,3 +261,9 @@ class MainWindow(QMainWindow):
         widget.setFont(font)
         for child in widget.findChildren(QWidget):
             self.set_font_recursively(child, font)
+
+    def log_out(self):
+        restart_app()
+
+    def log_out_quit(self):
+        os._exit(0)
