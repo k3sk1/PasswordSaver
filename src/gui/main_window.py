@@ -1,3 +1,5 @@
+# gui/main_window.py
+
 from PySide2.QtWidgets import (
     QMainWindow,
     QStatusBar,
@@ -27,7 +29,7 @@ import styles
 
 from data.encryption import derive_key, encrypt_password, decrypt_password
 from data.database import get_engine, create_tables, get_session
-from data.models import PasswordEntry
+from data.models import PasswordEntry, User, Settings
 
 import os
 import json
@@ -36,22 +38,18 @@ import sys
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, key, session):
+    def __init__(self, key, session, user, db_path):
         super().__init__()
 
         self.setWindowTitle("Password Saver")
         # Sett en fast størrelse på vinduet
         self.resize(1100, 800)
 
-        # Få den absolutte stien til 'data' mappen
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(current_dir, "..", "data")
-        salt_file = os.path.join(data_dir, "salt.json")
-        self.db_path = os.path.join(data_dir, "passwords.db")
-
-        # Initialize key and session
+        # Initialize key, session og user
         self.key = key
         self.session = session
+        self.user = user
+        self.db_path = db_path
 
         # Opprett hovedwidget og layout
         self.central_widget = QWidget()
@@ -71,16 +69,30 @@ class MainWindow(QMainWindow):
 
         # Opprett widgets uten å sette forelder
         self.placeholder_widget = PlaceholderWidget()
-        self.add_password_widget = AddPasswordWidget()
-        self.show_password_widget = ShowPasswordWidget(self.session, self.key)
-        self.backup_widget = BackupWidget(self.db_path, self.key, self.session)
+        self.add_password_widget = AddPasswordWidget(self.user, self.session, self.key)
+        self.show_password_widget = ShowPasswordWidget(
+            self.session, self.key, self.user
+        )
+        self.backup_widget = BackupWidget(
+            user,
+            self.db_path,
+            self.key,
+            self.session,
+        )
         self.settings_widget = SettingsWidget(
-            current_font_family=self.font().family(),
-            current_font_size=self.font().pointSize(),
+            user=self.user,
+            session=self.session,
+            key=self.key,
+            current_theme=(
+                self.user.settings.theme if self.user.settings else "default"
+            ),
+            current_font_size=(
+                self.user.settings.font_size if self.user.settings else 12
+            ),
         )
 
         # Kobler signaler
-        self.settings_widget.settings_changed.connect(self.apply_font_and_switch)
+        self.settings_widget.settings_changed.connect(self.apply_settings_and_save)
         self.settings_widget.settings_cancelled.connect(self.switch_back)
         self.add_password_widget.password_saved.connect(self.save_password)
         self.backup_widget.sync_completed.connect(self.update_button_states)
@@ -93,11 +105,14 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.backup_widget)  # Indeks 3
         self.stack.addWidget(self.settings_widget)  # Indeks 4
 
-        # Skjul alle widgets ved oppstart
+        # Sett til å vise hovedvinduet
         self.stack.setCurrentWidget(self.placeholder_widget)
 
-        # Sett global font
-        self.apply_font((self.font().family(), self.font().pointSize()))
+        # Sett global font og tema basert på brukerinnstillinger
+        self.apply_settings(
+            theme=self.user.settings.theme if self.user.settings else "default",
+            font_size=self.user.settings.font_size if self.user.settings else 12,
+        )
 
         # Sjekk antall passord og oppdater knappene
         self.update_button_states()
@@ -144,13 +159,18 @@ class MainWindow(QMainWindow):
 
     def update_button_states(self):
         try:
-            password_count = self.session.query(PasswordEntry).count()
+            # Filtrere passordene til den innloggede brukeren
+            password_count = (
+                self.session.query(PasswordEntry)
+                .filter_by(user_id=self.user.id)
+                .count()
+            )
             if password_count > 0:
                 self.view_password_button.setEnabled(True)
                 self.backup_button.setEnabled(True)
             else:
                 self.view_password_button.setEnabled(False)
-                # self.backup_button.setEnabled(False)
+                self.backup_button.setEnabled(False)
         except Exception as e:
             QMessageBox.critical(
                 self,
@@ -159,7 +179,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.Ok,
             )
             self.view_password_button.setEnabled(False)
-            # self.backup_button.setEnabled(False)
+            self.backup_button.setEnabled(False)
 
     def show_add_password_widget(self):
         self.stack.setCurrentWidget(self.add_password_widget)
@@ -170,57 +190,79 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.show_password_widget)
 
     def show_backup_widget(self):
-        if not hasattr(self, "backup_widget"):
-            # Instansier ShowPasswordWidget hvis den ikke allerede er instansiert
-            self.backup_widget = BackupWidget(self.db_path, self.key)
-            self.stack.addWidget(self.backup_widget)
-        else:
-            self.stack.setCurrentWidget(self.backup_widget)
+        self.stack.setCurrentWidget(self.backup_widget)
 
     def save_password(self, data):
-        # Krypter passordet
-        encrypted_password = encrypt_password(data["password"], self.key)
+        try:
+            # Krypter passordet
+            encrypted_password = encrypt_password(data["password"], self.key)
 
-        # Opprett PasswordEntry objekt
-        entry = PasswordEntry(
-            service=data["website"],
-            email=data["email"],
-            username=data["username"] if data["username"] else "",
-            encrypted_password=encrypted_password,
-            website=data["website"],
-            link=data["link"] if data["link"] else "",
-            tag=data["tag"] if data["tag"] else "",
-        )
+            # Opprett PasswordEntry objekt
+            entry = PasswordEntry(
+                service=data["service"],
+                email=data["email"],
+                username=data["username"] if data["username"] else "",
+                encrypted_password=encrypted_password,
+                link=data["link"] if data["link"] else "",
+                tag=data["tag"] if data["tag"] else "",
+                user_id=self.user.id,  # Knytt til den innloggede brukeren
+            )
 
-        # Legg til i databasen
-        self.session.add(entry)
-        self.session.commit()
+            # Legg til i databasen
+            self.session.add(entry)
+            self.session.commit()
 
-        # Oppdater knappene
-        self.update_button_states()
+            # Oppdater knappene
+            self.update_button_states()
 
-    def view_passwords(self):
-        pass
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Feil",
+                f"Kunne ikke lagre passordet: {str(e)}",
+                QMessageBox.Ok,
+            )
 
     def open_settings(self):
         # Bytt til settings_widget i stacken
         self.stack.setCurrentWidget(self.settings_widget)
 
-    def apply_font_and_switch(self, font_settings):
-        font_family, font_size = font_settings
-        new_font = QFont(font_family, font_size)
-        QApplication.instance().setFont(new_font)
+    def apply_settings_and_save(self, settings):
+        theme, font_size = settings
+        self.apply_settings(theme=theme, font_size=font_size)
 
-        # Rekursivt sette font på alle widgets, inkludert statuslinjen
-        self.set_font_recursively(self, new_font)
+        # Oppdater brukerinnstillingene i databasen
+        if self.user.settings:
+            self.user.settings.theme = theme
+            self.user.settings.font_size = font_size
+        else:
+            # Opprett standardinnstillinger hvis de ikke finnes
+            self.user.settings = Settings(theme=theme, font_size=font_size)
+            self.session.add(self.user.settings)
+        self.session.commit()
 
     def switch_back(self):
-        # Bytt tilbake til placeholder uten å endre font
+        # Bytt tilbake til placeholder uten å endre innstillinger
         self.stack.setCurrentWidget(self.placeholder_widget)
 
-    def apply_font(self, font_settings):
-        font_family, font_size = font_settings
-        new_font = QFont(font_family, font_size)
+    def apply_settings(self, theme="default", font_size=12):
+        # Anvend tema
+        self.apply_theme(theme)
+
+        # Anvend font-størrelse
+        self.apply_font_size(font_size)
+
+    def apply_theme(self, theme):
+        if theme == "vintage":
+            self.setStyleSheet("background-color: #f0e68c;")
+            # Legg til flere stilendringer basert på tema
+        else:
+            self.setStyleSheet("background-color: #b4a19e;")
+            # Standard tema stilendringer
+
+    def apply_font_size(self, font_size):
+        new_font = QFont()
+        new_font.setPointSize(font_size)
         QApplication.instance().setFont(new_font)
         self.set_font_recursively(self, new_font)
 

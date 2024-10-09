@@ -22,11 +22,12 @@ import styles
 class ShowPasswordWidget(QWidget):
     row_deleted = Signal()
 
-    def __init__(self, session, key):
+    def __init__(self, session, key, user):
         super().__init__()
 
         self.session = session
         self.key = key
+        self.user = user
 
         self.setStyleSheet("background-color: #d1e8e2;")
         self.setWindowTitle("Vis Passord")
@@ -93,8 +94,8 @@ class ShowPasswordWidget(QWidget):
         self.table.setColumnWidth(2, 150)  # Brukernavn
 
         # Sett maksimum bredde for "Passord" og "Tag"
-        self.table.setColumnWidth(3, 150)  # Passord
-        self.table.setColumnWidth(5, 150)  # Tag
+        self.table.setColumnWidth(3, 120)  # Passord
+        self.table.setColumnWidth(5, 120)  # Tag
 
         # Sett sizePolicy for å fylle plassen dynamisk
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -110,7 +111,10 @@ class ShowPasswordWidget(QWidget):
 
     def load_passwords(self):
         self.table.setRowCount(0)  # Tøm tabellen først
-        passwords = self.session.query(PasswordEntry).all()
+        # Filtrer passordene til den innloggede brukeren
+        passwords = (
+            self.session.query(PasswordEntry).filter_by(user_id=self.user.id).all()
+        )
         if not passwords:
             QMessageBox.information(
                 self,
@@ -147,7 +151,7 @@ class ShowPasswordWidget(QWidget):
 
     def view_password(self, row, column):
         try:
-            # Hent PasswordEntry fra databasen
+            # Hent PasswordEntry fra databasen basert på row og user_id
             service = self.table.item(row, 0).text()
             email = self.table.item(row, 1).text()
             username = self.table.item(row, 2).text()
@@ -157,7 +161,12 @@ class ShowPasswordWidget(QWidget):
             entry = (
                 self.session.query(PasswordEntry)
                 .filter_by(
-                    service=service, email=email, username=username, link=link, tag=tag
+                    service=service,
+                    email=email,
+                    username=username,
+                    link=link,
+                    tag=tag,
+                    user_id=self.user.id,  # Sikre at det tilhører riktig bruker
                 )
                 .first()
             )
@@ -199,7 +208,12 @@ class ShowPasswordWidget(QWidget):
             entry = (
                 self.session.query(PasswordEntry)
                 .filter_by(
-                    service=service, email=email, username=username, link=link, tag=tag
+                    service=service,
+                    email=email,
+                    username=username,
+                    link=link,
+                    tag=tag,
+                    user_id=self.user.id,  # Sikre at det tilhører riktig bruker
                 )
                 .first()
             )
@@ -253,6 +267,7 @@ class ShowPasswordWidget(QWidget):
                         username=username,
                         link=link,
                         tag=tag,
+                        user_id=self.user.id,  # Sikre at det tilhører riktig bruker
                     )
                     .first()
                 )
@@ -265,12 +280,6 @@ class ShowPasswordWidget(QWidget):
                     # Fjern raden fra tabellen
                     self.table.removeRow(row)
 
-                    QMessageBox.information(
-                        self,
-                        "Slettet",
-                        f"Passordet for tjeneste '{service}' er slettet.",
-                        QMessageBox.Ok,
-                    )
                     # Emit signal for å oppdatere knappestatusene
                     self.row_deleted.emit()
                 else:

@@ -3,23 +3,29 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 import base64
-import os
 
 
-def derive_key(password: str, salt: bytes) -> bytes:
-    """Generer en krypteringsnøkkel basert på master passordet og salt."""
+def derive_key(password, salt, iterations=100000):
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
-        iterations=100000,
+        iterations=iterations,
         backend=default_backend(),
     )
-    return base64.urlsafe_b64encode(kdf.derive(password.encode()))
+    key = kdf.derive(password.encode())
+    return base64.urlsafe_b64encode(key)
 
 
-def hash_password(password: str, salt: bytes) -> str:
-    return derive_key(password, salt).decode()
+def hash_password(password, salt, iterations=100000):
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=iterations,
+        backend=default_backend(),
+    )
+    return base64.b64encode(kdf.derive(password.encode())).decode().strip()
 
 
 def encrypt_password(password: str, key: bytes) -> str:
