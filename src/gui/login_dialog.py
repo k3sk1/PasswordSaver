@@ -7,14 +7,20 @@ from PySide2.QtWidgets import (
     QHBoxLayout,
     QMessageBox,
     QSizePolicy,
+    QMenuBar,
+    QAction,
 )
 from PySide2.QtCore import Qt
 import styles
+from data.query_functions import get_all_users
 
 
 class LoginDialog(QDialog):
-    def __init__(self, existing=True, parent=None):
+    def __init__(self, db_path, session, existing=True, parent=None):
         super().__init__(parent)
+
+        self.session = session
+        self.db_path = db_path
 
         self.setWindowTitle("Innlogging" if existing else "Opprett Bruker")
         self.setFixedSize(500, 400)
@@ -105,13 +111,23 @@ class LoginDialog(QDialog):
 
         self.setLayout(main_layout)
 
+        # Opprett menylinjen
+        self.menu_bar = QMenuBar(self)
+        self.layout().setMenuBar(self.menu_bar)
+
+        # Legg til en "Bytt bruker"-meny
+        self.switch_user_menu = self.menu_bar.addMenu("Bytt Bruker")
+        self.populate_user_menu()
+
     def switch_mode(self):
         if self.mode == "login":
             self.mode = "register"
             self.setWindowTitle("Opprett Bruker")
             self.switch_mode_button.setText("Tilbake til innlogging")
+            self.username_input.clear()
             self.confirm_password_label.show()
             self.confirm_password_input.show()
+            self.switch_user_menu.menuAction().setVisible(False)
         else:
             self.mode = "login"
             self.setWindowTitle("Innlogging")
@@ -120,6 +136,7 @@ class LoginDialog(QDialog):
             self.confirm_password_input.hide()
             self.username_input.clear()
             self.password_input.clear()
+            self.switch_user_menu.menuAction().setVisible(True)
 
     def on_ok(self):
         username = self.username_input.text().strip()
@@ -155,3 +172,25 @@ class LoginDialog(QDialog):
                 self.confirm_password_input.text() if self.mode == "register" else None
             ),
         }
+
+    def populate_user_menu(self):
+        # Tøm menyen først (for å unngå duplikater når menyen fylles på nytt)
+        self.switch_user_menu.clear()
+
+        # Hent alle brukerne fra databasen via query-funksjon
+        all_users = get_all_users(self.db_path, self.session)
+
+        def create_user_action(user):
+            return lambda checked: self.switch_to_user(user)
+
+        for user in all_users:
+            # Opprett en handling for hver bruker som kan velges
+            user_action = QAction(user[0], self)  # bruker username fra tuple
+            user_action.triggered.connect(create_user_action(user[0]))
+            self.switch_user_menu.addAction(user_action)
+
+    def switch_to_user(self, user):
+        # Oppdater brukernavnsfeltet med det valgte brukernavnet
+        self.username_input.setText(user)  # bruker username fra tuple
+        # Fokus på passordfeltet for å gjøre det enklere å skrive inn passord
+        self.password_input.setFocus()

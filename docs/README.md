@@ -4,10 +4,13 @@
 [Vintage Glass Palette](https://www.schemecolor.com/vintage-glass.php)
 
 ## Funksjonalitet
+- Kan registrere flere brukere
+- Kan lagre og søke/vise passord
+- Sikkerhetskopiering og synkronisere mellom pcer, ved hjelp av sikkerhetskopieringen
+- Kan gjøre skriftstørrelse større, slik at det er lettere å se
 
 ## Liste over funksjoner som skal implementeres
 - Evne til å generere nye passord
-- Sikkerhetskopiering
 - Evne til å lagre passord brukt i virkeligheten
 
 ## Lisens

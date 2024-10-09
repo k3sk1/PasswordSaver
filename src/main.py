@@ -28,7 +28,7 @@ def main():
         print("User exists:", user_exists)
 
         # Opprett login dialog
-        login_dialog = LoginDialog(existing=user_exists)
+        login_dialog = LoginDialog(db_path, login_manager.session, existing=user_exists)
         print("Login dialog created.")
 
         # Vis dialogen som modal

@@ -3,7 +3,6 @@ import os
 from data.encryption import derive_key, hash_password
 from data.models import User, Settings
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
 
 class LoginManager:
