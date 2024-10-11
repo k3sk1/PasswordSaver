@@ -1,3 +1,4 @@
+import webbrowser
 from PySide2.QtWidgets import (
     QWidget,
     QLineEdit,
@@ -58,17 +59,31 @@ class ShowPasswordWidget(QWidget):
         # Oppretter knapper
         self.copy_button = QPushButton("Kopier passord til utklippstavle")
         self.delete_button = QPushButton("Slett passord (rad)")
+        self.go_to_web_button = QPushButton("Gå til nettsted og kopier passord")
         self.copy_button.setStyleSheet(styles.BUTTON_STYLE)
         self.delete_button.setStyleSheet(styles.BUTTON_STYLE2)
+        self.go_to_web_button.setStyleSheet(styles.BUTTON_STYLE)
         self.copy_button.clicked.connect(self.copy_password)
         self.delete_button.clicked.connect(self.delete_row)
+        self.go_to_web_button.clicked.connect(self.go_to_web)
 
         # Opprett horisontal layout for knappene
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()  # Skyver knappene til høyre (valgfritt)
-        button_layout.addWidget(self.copy_button)
-        button_layout.addWidget(self.delete_button)
-        button_layout.addStretch()  # Skyver knappene til venstre og høyre (valgfritt)
+        button_layout_1 = QHBoxLayout()
+        button_layout_1.addStretch()  # Skyver knappene til høyre (valgfritt)
+        button_layout_1.addWidget(self.copy_button)
+        button_layout_1.addWidget(self.delete_button)
+        button_layout_1.addStretch()  # Skyver knappene til venstre og høyre (valgfritt)
+
+        # Opprett horisontal layout for den andre raden med knapper
+        button_layout_2 = QHBoxLayout()
+        button_layout_2.addStretch()  # Skyver knappene til høyre (valgfritt)
+        button_layout_2.addWidget(self.go_to_web_button)  # Legger til en ny knapp
+        button_layout_2.addStretch()  # Skyver knappene til venstre og høyre (valgfritt)
+
+        # Opprett en vertikal layout som holder begge radene
+        button_layout = QVBoxLayout()
+        button_layout.addLayout(button_layout_1)
+        button_layout.addLayout(button_layout_2)
 
         main_layout.addLayout(button_layout)
 
@@ -296,3 +311,33 @@ class ShowPasswordWidget(QWidget):
                     f"Kunne ikke slette passordet: {str(e)}",
                     QMessageBox.Ok,
                 )
+
+    def go_to_web(self):
+        selected_items = self.table.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(
+                self, "Ingen Valgt", "Vennligst velg et passord fra tabellen."
+            )
+            return
+
+        # Hent raden som er valgt
+        row = selected_items[0].row()
+
+        # Hent data fra den nødvendige kolonnen
+        link = self.table.item(row, 4).text()
+
+        # Sjekk at linken ikke er tom
+        if not link:
+            QMessageBox.warning(
+                self, "Ingen Link", "Ingen link er lagret for denne tjenesten."
+            )
+            return
+
+        # Kopier passord
+        self.copy_password()
+
+        # Åpne link i standard nettleser
+        try:
+            webbrowser.open(link)
+        except Exception as e:
+            QMessageBox.critical(self, "Feil", f"Kunne ikke åpne nettleser: {str(e)}")

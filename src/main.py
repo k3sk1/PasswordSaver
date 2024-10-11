@@ -51,8 +51,15 @@ def main():
                         user,
                         db_path,
                     )
+                    main_window.logged_out.connect(
+                        lambda: app.quit()
+                    )  # Logg ut fører til at hovedvinduet lukkes
                     main_window.show()
-                    sys.exit(app.exec_())
+                    app.exec_()
+
+                    # Når hovedvinduet lukkes, tilbake til login
+                    continue
+
                 else:
                     QMessageBox.critical(
                         None,
@@ -85,7 +92,9 @@ def main():
         else:
             # Dialog avvist (bruker trykker "Avbryt")
             print("Dialog rejected, quitting app.")
-            sys.exit()
+            login_manager.session.close()
+            app.quit()
+            sys.exit(0)
 
 
 if __name__ == "__main__":

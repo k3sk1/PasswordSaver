@@ -9,7 +9,7 @@ from PySide2.QtWidgets import (
     QStackedWidget,
     QApplication,
 )
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, Signal
 from PySide2.QtGui import QFont
 from gui.add_password_widget import AddPasswordWidget
 from gui.placeholder_widget import PlaceholderWidget
@@ -19,10 +19,11 @@ from gui.backup_widget import BackupWidget
 
 from data.encryption import encrypt_password
 from data.models import PasswordEntry, Settings
-from utils.login_manager import restart_app
 
 
 class MainWindow(QMainWindow):
+    logged_out = Signal()
+
     def __init__(self, key, session, user, db_path):
         super().__init__()
 
@@ -263,7 +264,8 @@ class MainWindow(QMainWindow):
             self.set_font_recursively(child, font)
 
     def log_out(self):
-        restart_app()
+        self.logged_out.emit()
+        self.close()
 
     def log_out_quit(self):
         os._exit(0)

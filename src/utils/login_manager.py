@@ -1,15 +1,8 @@
 import base64
 import os
-import sys
 from data.encryption import derive_key, hash_password
 from data.models import User, Settings
 from sqlalchemy.exc import IntegrityError
-
-
-def restart_app():
-    # Avslutt programmet og start på nytt
-    python = sys.executable
-    os.execl(python, python, *sys.argv)
 
 
 class LoginManager:
