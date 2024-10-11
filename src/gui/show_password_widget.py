@@ -10,10 +10,10 @@ from PySide2.QtWidgets import (
     QMessageBox,
     QApplication,
     QSizePolicy,
+    QHeaderView,
 )
-from PySide2.QtCore import Qt, Signal
-from PySide2.QtGui import QFont
-from PySide2.QtWidgets import QHeaderView
+from PySide2.QtCore import Signal
+
 from data.models import PasswordEntry
 from data.encryption import decrypt_password
 import styles

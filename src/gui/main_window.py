@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
         view_password_button = QPushButton("Vis passord")
         backup_button = QPushButton("Sikkerhetskopiering")
         settings_button = QPushButton("Innstillinger")
-        log_out_button = QPushButton("logg ut og bytt bruker")
+        log_out_button = QPushButton("Logg ut og bytt bruker")
         log_out_quit_button = QPushButton("Logg ut og avslutt")
 
         # Koble knappene til funksjoner

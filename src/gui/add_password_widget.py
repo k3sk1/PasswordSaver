@@ -1,16 +1,17 @@
-# gui/add_password_widget.py
-
+import random
 from PySide2.QtWidgets import (
     QWidget,
     QLabel,
     QLineEdit,
     QPushButton,
+    QToolButton,
+    QButtonGroup,
+    QMessageBox,
     QFormLayout,
     QVBoxLayout,
-    QMessageBox,
+    QHBoxLayout,
 )
 from PySide2.QtCore import Qt, Signal
-from PySide2.QtGui import QFont
 import styles
 
 
@@ -51,6 +52,23 @@ class AddPasswordWidget(QWidget):
         self.password_input.setTextMargins(5, 0, 0, 0)
         self.password_input.setPlaceholderText("Ditt passord")
 
+        # Vis/skjul passord knapp
+        self.toggle_password_button = QToolButton()
+        self.toggle_password_button.setText("\U0001F441")  # Unicode for øyesymbol
+        self.toggle_password_button.setCheckable(True)
+        self.toggle_password_button.setStyleSheet(styles.BUTTON_STYLE_CIRCLE)
+        self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
+
+        # Juster høyden til vis/skjul passord knappen dynamisk etter passord input feltet
+        self.toggle_password_button.setFixedSize(
+            self.password_input.height(), self.password_input.height()
+        )
+
+        # Lag en horisontal layout for passordfeltet og sjekkboksen
+        password_layout = QHBoxLayout()
+        password_layout.addWidget(self.password_input)
+        password_layout.addWidget(self.toggle_password_button)
+
         self.service_label = QLabel("Tjeneste:")
         self.service_label.setStyleSheet(styles.LABEL_STYLE)
         self.service_input = QLineEdit()
@@ -72,11 +90,36 @@ class AddPasswordWidget(QWidget):
         self.tag_input.setTextMargins(5, 0, 0, 0)
         self.tag_input.setPlaceholderText("Arbeid")
 
-        # Lagre-knapp
+        # buttons
         self.save_button = QPushButton("Lagre")
+        self.generate_passw_button = QPushButton("Lag passord")
         self.save_button.setStyleSheet(styles.BUTTON_STYLE)
+        self.generate_passw_button.setStyleSheet(styles.BUTTON_STYLE)
         self.save_button.setFixedWidth(150)
         self.save_button.clicked.connect(self.save_password)
+        self.generate_passw_button.clicked.connect(self.generate_password)
+
+        # Radioknapper for passordstyrke
+        self.low_strength_button = QPushButton("Lav")
+        self.medium_strength_button = QPushButton("Medium")
+        self.high_strength_button = QPushButton("Høy")
+        self.low_strength_button.setCheckable(True)
+        self.medium_strength_button.setCheckable(True)
+        self.high_strength_button.setCheckable(True)
+        self.medium_strength_button.setChecked(True)  # Medium er standard
+
+        # Gruppér styrkeknappene
+        self.strength_group = QButtonGroup()
+        self.strength_group.addButton(self.low_strength_button)
+        self.strength_group.addButton(self.medium_strength_button)
+        self.strength_group.addButton(self.high_strength_button)
+
+        # Legg til styrkeknappene i en horisontal layout ved siden av "Lag passord"-knappen
+        strength_layout = QHBoxLayout()
+        strength_layout.addWidget(self.generate_passw_button)
+        strength_layout.addWidget(self.low_strength_button)
+        strength_layout.addWidget(self.medium_strength_button)
+        strength_layout.addWidget(self.high_strength_button)
 
         # Opprett en QFormLayout
         form_layout = QFormLayout()
@@ -88,7 +131,7 @@ class AddPasswordWidget(QWidget):
         # Legg til feltene i form_layout
         form_layout.addRow(self.email_label, self.email_input)
         form_layout.addRow(self.username_label, self.username_input)
-        form_layout.addRow(self.password_label, self.password_input)
+        form_layout.addRow(self.password_label, password_layout)
         form_layout.addRow(self.service_label, self.service_input)
         form_layout.addRow(self.link_label, self.link_input)
         form_layout.addRow(self.tag_label, self.tag_input)
@@ -98,6 +141,8 @@ class AddPasswordWidget(QWidget):
         main_layout.setContentsMargins(50, 30, 50, 30)
         main_layout.setSpacing(30)
         main_layout.addLayout(form_layout)
+        main_layout.addLayout(strength_layout)
+        main_layout.addWidget(self.generate_passw_button, alignment=Qt.AlignCenter)
         main_layout.addWidget(self.save_button, alignment=Qt.AlignCenter)
 
         self.setLayout(main_layout)
@@ -120,6 +165,72 @@ class AddPasswordWidget(QWidget):
         # Tøm feltene etter lagring
         self.clear_fields()
 
+    def generate_password(self):
+        # Bestem passordstyrke basert på valgt radioknapp
+        if self.high_strength_button.isChecked():
+            length = 18
+        elif self.medium_strength_button.isChecked():
+            length = 12
+        else:  # Lav styrke
+            length = 6
+
+        # Liste med korte og lengre ord
+        ordliste = [
+            "sol",
+            "måne",
+            "blomst",
+            "fjell",
+            "skog",
+            "hav",
+            "hund",
+            "katt",
+            "vann",
+            "ild",
+            "vind",
+            "snø",
+            "fugl",
+            "tre",
+            "stein",
+            "himmel",
+            "natt",
+            "dag",
+            "blå",
+            "rød",
+            "grønn",
+            "gul",
+            "sky",
+            "gull",
+            "lys",
+            "regn",
+            "is",
+            "fisk",
+            "båt",
+            "vei",
+            "lys",
+            "mørke",
+            "tid",
+            "fred",
+            "kaffe",
+            "te",
+            "bro",
+            "tårn",
+            "kyst",
+            "sjø",
+            "solskinn",
+            "fjelltopp",
+        ]
+
+        # Velg 18 tilfeldige ord fra listen
+        passord_ord = random.choices(ordliste, k=length)
+
+        # Sett sammen ordene med en bindestrek
+        passord = "-".join(passord_ord)
+
+        # Skriv passordet inn i passordfeltet automatisk
+        self.password_input.setText(passord)
+
+        print("Generert passord:", passord)
+
     def get_data(self):
         return {
             "service": self.service_input.text(),
@@ -137,3 +248,19 @@ class AddPasswordWidget(QWidget):
         self.password_input.clear()
         self.link_input.clear()
         self.tag_input.clear()
+
+    def toggle_password_visibility(self):
+        """Vis eller skjul passordet basert på knappen sin tilstand."""
+        if self.toggle_password_button.isChecked():
+            self.password_input.setEchoMode(QLineEdit.Normal)
+            self.toggle_password_button.setText("\U0001F441")  # Åpent øye-symbol
+        else:
+            self.password_input.setEchoMode(QLineEdit.Password)
+            self.toggle_password_button.setText("\U0001F576")  # Lukket øye-symbol
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Oppdater høyden til vis/skjul passord knappen
+        self.toggle_password_button.setFixedSize(
+            self.password_input.height(), self.password_input.height()
+        )

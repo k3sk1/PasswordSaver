@@ -35,9 +35,25 @@ QPushButton {
     border-radius: 5px;
 }
 QPushButton:hover {
-    background-color: #45a049;
+    background-color: #e63946;
 }
 """
+
+BUTTON_STYLE_CIRCLE = """
+QToolButton {
+    border-radius: 20px;  /* Border-radius må være halvparten av bredden/høyden */
+    border: 1px solid gray;
+    min-width: 40px;  /* Juster disse verdiene for å gjøre knappen større/mindre */
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    text-align: center;  /* Sentrer teksten */
+}
+"""
+
 
 LABEL_STYLE = """
 QLabel {
