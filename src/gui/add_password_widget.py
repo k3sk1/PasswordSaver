@@ -13,18 +13,22 @@ from PySide2.QtWidgets import (
 )
 from PySide2.QtCore import Qt, Signal
 import styles
+from data.encryption import encrypt_password
+from data.models import PasswordEntry
 
 
 class AddPasswordWidget(QWidget):
     # Definer en signal som emitteres når passordet er lagret
     password_saved = Signal(dict)
 
-    def __init__(self, user, session, key, parent=None):
+    def __init__(self, user, session, key, main_window, parent=None):
         super().__init__(parent)
 
         self.user = user
         self.session = session
         self.key = key
+        self.main_window = main_window
+        self.entry_id = None
 
         self.setStyleSheet("background-color: #ffad8d;")
         self.setWindowTitle("Legg til passord")
@@ -54,7 +58,9 @@ class AddPasswordWidget(QWidget):
 
         # Vis/skjul passord knapp
         self.toggle_password_button = QToolButton()
-        self.toggle_password_button.setText("\U0001F441")  # Unicode for øyesymbol
+        self.toggle_password_button.setText(
+            "\U0001F576"
+        )  # Unicode for solbrille symbol
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setStyleSheet(styles.BUTTON_STYLE_CIRCLE)
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
@@ -158,12 +164,55 @@ class AddPasswordWidget(QWidget):
             )
             return
 
-        # Emit signal med data inkludert bruker_id
-        data["user_id"] = self.user.id
-        self.password_saved.emit(data)
+        try:
+            if self.entry_id:
+                # Oppdater eksisterende oppføring
+                entry = self.session.query(PasswordEntry).get(self.entry_id)
+                if entry:
+                    entry.service = data["service"]
+                    entry.email = data["email"]
+                    entry.username = data["username"]
+                    entry.encrypted_password = encrypt_password(
+                        data["password"], self.key
+                    )
+                    entry.link = data["link"]
+                    entry.tag = data["tag"]
+                    self.session.commit()
 
-        # Tøm feltene etter lagring
-        self.clear_fields()
+                    # Gå tilbake til "ShowPasswordWidget" etter oppdatering
+                    self.main_window.show_show_password_widget()
+                else:
+                    QMessageBox.warning(self, "Feil", "Kunne ikke finne oppføringen.")
+            else:
+                # Opprett ny oppføring
+                encrypted_password = encrypt_password(data["password"], self.key)
+                entry = PasswordEntry(
+                    service=data["service"],
+                    email=data["email"],
+                    username=data["username"] if data["username"] else "",
+                    encrypted_password=encrypted_password,
+                    link=data["link"] if data["link"] else "",
+                    tag=data["tag"] if data["tag"] else "",
+                    user_id=self.user.id,
+                )
+                self.session.add(entry)
+                self.session.commit()
+
+            # Emit signal med data inkludert bruker_id
+            data["user_id"] = self.user.id
+            self.password_saved.emit(data)
+
+            # Tøm feltene etter lagring
+            self.clear_fields()
+            self.entry_id = None  # Tilbakestill entry_id etter oppdatering/lagring
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Feil",
+                f"Kunne ikke lagre passordet: {str(e)}",
+                QMessageBox.Ok,
+            )
 
     def generate_password(self):
         # Bestem passordstyrke basert på valgt radioknapp
@@ -248,6 +297,16 @@ class AddPasswordWidget(QWidget):
         self.password_input.clear()
         self.link_input.clear()
         self.tag_input.clear()
+
+    def fill_fields(self, data, entry_id=None):
+        """Fyll inn feltene med data, og oppdater entry_id hvis vi redigerer."""
+        self.entry_id = entry_id
+        self.service_input.setText(data.get("service", ""))
+        self.email_input.setText(data.get("email", ""))
+        self.username_input.setText(data.get("username", ""))
+        self.password_input.setText(data.get("password", ""))
+        self.link_input.setText(data.get("link", ""))
+        self.tag_input.setText(data.get("tag", ""))
 
     def toggle_password_visibility(self):
         """Vis eller skjul passordet basert på knappen sin tilstand."""

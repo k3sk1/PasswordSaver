@@ -23,12 +23,13 @@ import styles
 class ShowPasswordWidget(QWidget):
     row_deleted = Signal()
 
-    def __init__(self, session, key, user):
+    def __init__(self, session, key, user, main_window):
         super().__init__()
 
         self.session = session
         self.key = key
         self.user = user
+        self.main_window = main_window
 
         self.setStyleSheet("background-color: #d1e8e2;")
         self.setWindowTitle("Vis Passord")
@@ -60,25 +61,29 @@ class ShowPasswordWidget(QWidget):
         self.copy_button = QPushButton("Kopier passord til utklippstavle")
         self.delete_button = QPushButton("Slett passord (rad)")
         self.go_to_web_button = QPushButton("Gå til nettsted og kopier passord")
+        self.edit_button = QPushButton("Endre rad")
         self.copy_button.setStyleSheet(styles.BUTTON_STYLE)
         self.delete_button.setStyleSheet(styles.BUTTON_STYLE2)
         self.go_to_web_button.setStyleSheet(styles.BUTTON_STYLE)
+        self.edit_button.setStyleSheet(styles.BUTTON_STYLE)
         self.copy_button.clicked.connect(self.copy_password)
         self.delete_button.clicked.connect(self.delete_row)
         self.go_to_web_button.clicked.connect(self.go_to_web)
+        self.edit_button.clicked.connect(self.edit_row)
 
         # Opprett horisontal layout for knappene
         button_layout_1 = QHBoxLayout()
-        button_layout_1.addStretch()  # Skyver knappene til høyre (valgfritt)
+        button_layout_1.addStretch()  # Skyver knappene til høyre
         button_layout_1.addWidget(self.copy_button)
         button_layout_1.addWidget(self.delete_button)
-        button_layout_1.addStretch()  # Skyver knappene til venstre og høyre (valgfritt)
+        button_layout_1.addStretch()  # Skyver knappene til venstre og høyre
 
         # Opprett horisontal layout for den andre raden med knapper
         button_layout_2 = QHBoxLayout()
-        button_layout_2.addStretch()  # Skyver knappene til høyre (valgfritt)
-        button_layout_2.addWidget(self.go_to_web_button)  # Legger til en ny knapp
-        button_layout_2.addStretch()  # Skyver knappene til venstre og høyre (valgfritt)
+        button_layout_2.addStretch()  # Skyver knappene til høyre
+        button_layout_2.addWidget(self.go_to_web_button)
+        button_layout_2.addWidget(self.edit_button)
+        button_layout_2.addStretch()  # Skyver knappene til venstre og høyre
 
         # Opprett en vertikal layout som holder begge radene
         button_layout = QVBoxLayout()
@@ -311,6 +316,63 @@ class ShowPasswordWidget(QWidget):
                     f"Kunne ikke slette passordet: {str(e)}",
                     QMessageBox.Ok,
                 )
+
+    def edit_row(self):
+        selected_items = self.table.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(
+                self, "Ingen Valgt", "Vennligst velg et passord fra tabellen."
+            )
+            return
+
+        # Hent raden som er valgt
+        row = selected_items[0].row()
+
+        # Hent data fra de nødvendige kolonnene
+        service = self.table.item(row, 0).text()
+        email = self.table.item(row, 1).text()
+        username = self.table.item(row, 2).text()
+        link = self.table.item(row, 4).text()
+        tag = self.table.item(row, 5).text()
+
+        # Hent passordet fra databasen (dekryptert)
+        try:
+            entry = (
+                self.session.query(PasswordEntry)
+                .filter_by(
+                    service=service,
+                    email=email,
+                    username=username,
+                    link=link,
+                    tag=tag,
+                    user_id=self.user.id,
+                )
+                .first()
+            )
+
+            if entry:
+                decrypted_password = decrypt_password(
+                    entry.encrypted_password, self.key
+                )
+                # Bytt til AddPasswordWidget og fyll inn data
+                password_data = {
+                    "service": service,
+                    "email": email,
+                    "username": username,
+                    "password": decrypted_password,
+                    "link": link,
+                    "tag": tag,
+                }
+                self.main_window.show_add_password_widget()
+                self.main_window.add_password_widget.fill_fields(
+                    password_data, entry.id
+                )
+            else:
+                QMessageBox.warning(
+                    self, "Ikke Funnet", "Passordet ble ikke funnet i databasen."
+                )
+        except Exception as e:
+            QMessageBox.critical(self, "Feil", f"Kunne ikke hente passordet: {str(e)}")
 
     def go_to_web(self):
         selected_items = self.table.selectedItems()

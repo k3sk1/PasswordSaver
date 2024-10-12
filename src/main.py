@@ -53,12 +53,15 @@ def main():
                     )
                     main_window.logged_out.connect(
                         lambda: app.quit()
-                    )  # Logg ut fører til at hovedvinduet lukkes
+                    )  # Logg ut fører til at hovedvinduet lukkes og vi starter login igjen
                     main_window.show()
                     app.exec_()
 
-                    # Når hovedvinduet lukkes, tilbake til login
-                    continue
+                    # Når hovedvinduet lukkes
+                    if main_window.is_logging_out:
+                        continue  # Logg ut og tilbake til innloggingsskjermen
+                    elif main_window.is_closing_app:
+                        break  # Avslutte applikasjonen
 
                 else:
                     QMessageBox.critical(
@@ -68,7 +71,7 @@ def main():
                         QMessageBox.Ok,
                     )
                     print("Authentication failed. Showing login dialog again.")
-                    # Fortsett løkka for å vise dialogen igjen
+
             elif mode == "register":
                 created = login_manager.create_user(username, password)
                 if created:
@@ -79,7 +82,6 @@ def main():
                         QMessageBox.Ok,
                     )
                     print("User created. Showing login dialog again.")
-                    # Fortsett løkka for å vise dialogen igjen i innloggingsmodus
                 else:
                     QMessageBox.critical(
                         None,
@@ -88,12 +90,10 @@ def main():
                         QMessageBox.Ok,
                     )
                     print("User creation failed. Showing login dialog again.")
-                    # Fortsett løkka for å vise dialogen igjen
         else:
             # Dialog avvist (bruker trykker "Avbryt")
             print("Dialog rejected, quitting app.")
             login_manager.session.close()
-            app.quit()
             sys.exit(0)
 
 

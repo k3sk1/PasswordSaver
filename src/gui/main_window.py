@@ -1,4 +1,4 @@
-import os
+import sys
 from PySide2.QtWidgets import (
     QMainWindow,
     QPushButton,
@@ -17,12 +17,11 @@ from gui.settings_widget import SettingsWidget
 from gui.show_password_widget import ShowPasswordWidget
 from gui.backup_widget import BackupWidget
 
-from data.encryption import encrypt_password
 from data.models import PasswordEntry, Settings
 
 
 class MainWindow(QMainWindow):
-    logged_out = Signal()
+    logged_out = Signal()  # Dette signalet sender vi når brukeren logger ut
 
     def __init__(self, key, session, user, db_path):
         super().__init__()
@@ -36,6 +35,8 @@ class MainWindow(QMainWindow):
         self.session = session
         self.user = user
         self.db_path = db_path
+        self.is_logging_out = False
+        self.is_closing_app = False
 
         # Opprett hovedwidget og layout
         self.central_widget = QWidget()
@@ -55,9 +56,11 @@ class MainWindow(QMainWindow):
 
         # Opprett widgets uten å sette forelder
         self.placeholder_widget = PlaceholderWidget()
-        self.add_password_widget = AddPasswordWidget(self.user, self.session, self.key)
+        self.add_password_widget = AddPasswordWidget(
+            self.user, self.session, self.key, self
+        )
         self.show_password_widget = ShowPasswordWidget(
-            self.session, self.key, self.user
+            self.session, self.key, self.user, self
         )
         self.backup_widget = BackupWidget(
             user,
@@ -80,7 +83,7 @@ class MainWindow(QMainWindow):
         # Kobler signaler
         self.settings_widget.settings_changed.connect(self.apply_settings_and_save)
         self.settings_widget.settings_cancelled.connect(self.switch_back)
-        self.add_password_widget.password_saved.connect(self.save_password)
+        self.add_password_widget.password_saved.connect(self.update_button_states)
         self.backup_widget.sync_completed.connect(self.update_button_states)
         self.show_password_widget.row_deleted.connect(self.update_button_states)
 
@@ -173,8 +176,16 @@ class MainWindow(QMainWindow):
             self.view_password_button.setEnabled(False)
             self.backup_button.setEnabled(False)
 
-    def show_add_password_widget(self):
+    def show_add_password_widget(self, password_data=None):
+        # Bytt til AddPasswordWidget i stacken
         self.stack.setCurrentWidget(self.add_password_widget)
+
+        # Hvis det er passorddata som skal redigeres, fyll inn feltene
+        if password_data:
+            self.add_password_widget.fill_fields(password_data)
+        else:
+            # Hvis ingen data er gitt, tøm feltene for å legge til nytt passord
+            self.add_password_widget.clear_fields()
 
     def show_show_password_widget(self):
         # Last inn passordene når widgeten skal vises
@@ -183,37 +194,6 @@ class MainWindow(QMainWindow):
 
     def show_backup_widget(self):
         self.stack.setCurrentWidget(self.backup_widget)
-
-    def save_password(self, data):
-        try:
-            # Krypter passordet
-            encrypted_password = encrypt_password(data["password"], self.key)
-
-            # Opprett PasswordEntry objekt
-            entry = PasswordEntry(
-                service=data["service"],
-                email=data["email"],
-                username=data["username"] if data["username"] else "",
-                encrypted_password=encrypted_password,
-                link=data["link"] if data["link"] else "",
-                tag=data["tag"] if data["tag"] else "",
-                user_id=self.user.id,  # Knytt til den innloggede brukeren
-            )
-
-            # Legg til i databasen
-            self.session.add(entry)
-            self.session.commit()
-
-            # Oppdater knappene
-            self.update_button_states()
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Feil",
-                f"Kunne ikke lagre passordet: {str(e)}",
-                QMessageBox.Ok,
-            )
 
     def open_settings(self):
         # Bytt til settings_widget i stacken
@@ -264,8 +244,25 @@ class MainWindow(QMainWindow):
             self.set_font_recursively(child, font)
 
     def log_out(self):
+        # Setter flagget for å indikere at brukeren logger ut
+        self.is_logging_out = True
+        self.is_closing_app = False
         self.logged_out.emit()
         self.close()
 
     def log_out_quit(self):
-        os._exit(0)
+        # Setter flagget for å indikere at applikasjonen skal avsluttes
+        self.is_logging_out = False
+        self.is_closing_app = True
+        self.close()
+
+    def closeEvent(self, event):
+        if self.is_closing_app:
+            # Tillat å lukke applikasjonen
+            QApplication.quit()
+        elif self.is_logging_out:
+            # Tillat å logge ut og gå tilbake til login
+            event.accept()
+        else:
+            # Lukker applikasjonen normalt
+            QApplication.quit()
