@@ -257,12 +257,10 @@ class MainWindow(QMainWindow):
         self.close()
 
     def closeEvent(self, event):
-        if self.is_closing_app:
-            # Tillat å lukke applikasjonen
+        if self.is_closing_app or not self.is_logging_out:
+            # Lukker applikasjonen helt
             QApplication.quit()
+            sys.exit(0)  # Avslutter Python-prosessen
         elif self.is_logging_out:
             # Tillat å logge ut og gå tilbake til login
             event.accept()
-        else:
-            # Lukker applikasjonen normalt
-            QApplication.quit()

@@ -42,7 +42,7 @@ def main():
             password = credentials["password"]
 
             if mode == "login":
-                user, key = login_manager.authenticate_user(username, password)
+                user, key, message = login_manager.authenticate_user(username, password)
                 if user:
                     print("Login successful, opening main window.")
                     main_window = MainWindow(
@@ -67,7 +67,7 @@ def main():
                     QMessageBox.critical(
                         None,
                         "Feil",
-                        "Ugyldig brukernavn eller passord.",
+                        message,
                         QMessageBox.Ok,
                     )
                     print("Authentication failed. Showing login dialog again.")
