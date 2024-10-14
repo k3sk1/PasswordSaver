@@ -12,6 +12,15 @@ QLineEdit {
 }
 """
 
+PASSWORD_STYLE = """
+QLineEdit {
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 5px;
+    min-height: 30px;  /* Sett en fast minimum høyde for å beholde konsistent utseende */
+}
+"""
+
 
 BUTTON_STYLE = """
 QPushButton {

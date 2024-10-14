@@ -1,10 +1,8 @@
 import sys
 import os
-from PySide2.QtWidgets import QApplication, QMessageBox, QDialog
+from PySide2.QtWidgets import QApplication
 from gui.main_window import MainWindow
 from utils.login_manager import LoginManager
-from gui.login_dialog import LoginDialog
-from data.models import User
 import styles
 
 
@@ -22,79 +20,12 @@ def main():
     # Initialiser LoginManager
     login_manager = LoginManager(db_path)
 
-    while True:
-        # Sjekk om det finnes noen brukere
-        user_exists = login_manager.session.query(User).first() is not None
-        print("User exists:", user_exists)
+    # Opprett hovedvinduet
+    main_window = MainWindow(None, login_manager.session, None, db_path)
+    main_window.login_manager = login_manager  # Sett login manager som en attributt
+    main_window.show()
 
-        # Opprett login dialog
-        login_dialog = LoginDialog(db_path, login_manager.session, existing=user_exists)
-        print("Login dialog created.")
-
-        # Vis dialogen som modal
-        result = login_dialog.exec_()
-        print("Dialog executed with result:", result)
-
-        if result == QDialog.Accepted:
-            credentials = login_dialog.get_credentials()
-            mode = credentials["mode"]
-            username = credentials["username"]
-            password = credentials["password"]
-
-            if mode == "login":
-                user, key, message = login_manager.authenticate_user(username, password)
-                if user:
-                    print("Login successful, opening main window.")
-                    main_window = MainWindow(
-                        key,
-                        login_manager.session,
-                        user,
-                        db_path,
-                    )
-                    main_window.logged_out.connect(
-                        lambda: app.quit()
-                    )  # Logg ut fører til at hovedvinduet lukkes og vi starter login igjen
-                    main_window.show()
-                    app.exec_()
-
-                    # Når hovedvinduet lukkes
-                    if main_window.is_logging_out:
-                        continue  # Logg ut og tilbake til innloggingsskjermen
-                    elif main_window.is_closing_app:
-                        break  # Avslutte applikasjonen
-
-                else:
-                    QMessageBox.critical(
-                        None,
-                        "Feil",
-                        message,
-                        QMessageBox.Ok,
-                    )
-                    print("Authentication failed. Showing login dialog again.")
-
-            elif mode == "register":
-                created = login_manager.create_user(username, password)
-                if created:
-                    QMessageBox.information(
-                        None,
-                        "Suksess",
-                        "Bruker opprettet! Vennligst logg inn.",
-                        QMessageBox.Ok,
-                    )
-                    print("User created. Showing login dialog again.")
-                else:
-                    QMessageBox.critical(
-                        None,
-                        "Feil",
-                        "Kunne ikke opprette bruker. Brukernavn kan allerede være tatt.",
-                        QMessageBox.Ok,
-                    )
-                    print("User creation failed. Showing login dialog again.")
-        else:
-            # Dialog avvist (bruker trykker "Avbryt")
-            print("Dialog rejected, quitting app.")
-            login_manager.session.close()
-            sys.exit(0)
+    sys.exit(app.exec_())
 
 
 if __name__ == "__main__":

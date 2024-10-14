@@ -1,4 +1,3 @@
-import sys
 from PySide2.QtWidgets import (
     QMainWindow,
     QPushButton,
@@ -16,6 +15,7 @@ from gui.placeholder_widget import PlaceholderWidget
 from gui.settings_widget import SettingsWidget
 from gui.show_password_widget import ShowPasswordWidget
 from gui.backup_widget import BackupWidget
+from gui.login_widget import LoginWidget
 
 from data.models import PasswordEntry, Settings
 
@@ -35,8 +35,6 @@ class MainWindow(QMainWindow):
         self.session = session
         self.user = user
         self.db_path = db_path
-        self.is_logging_out = False
-        self.is_closing_app = False
 
         # Opprett hovedwidget og layout
         self.central_widget = QWidget()
@@ -55,66 +53,43 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.stack)
 
         # Opprett widgets uten å sette forelder
+        self.login_widget = LoginWidget(
+            session=self.session, db_path=self.db_path, existing=True
+        )
         self.placeholder_widget = PlaceholderWidget()
-        self.add_password_widget = AddPasswordWidget(
-            self.user, self.session, self.key, self
-        )
-        self.show_password_widget = ShowPasswordWidget(
-            self.session, self.key, self.user, self
-        )
-        self.backup_widget = BackupWidget(
-            user,
-            self.db_path,
-            self.key,
-            self.session,
-        )
         self.settings_widget = SettingsWidget(
-            user=self.user,
+            user=None,
             session=self.session,
             key=self.key,
-            current_theme=(
-                self.user.settings.theme if self.user.settings else "default"
-            ),
-            current_font_size=(
-                self.user.settings.font_size if self.user.settings else 12
-            ),
+            current_theme="default",
+            current_font_size=16,
         )
 
         # Kobler signaler
+        self.login_widget.login_success.connect(self.handle_login)
         self.settings_widget.settings_changed.connect(self.apply_settings_and_save)
         self.settings_widget.settings_cancelled.connect(self.switch_back)
-        self.add_password_widget.password_saved.connect(self.update_button_states)
-        self.backup_widget.sync_completed.connect(self.update_button_states)
-        self.show_password_widget.row_deleted.connect(self.update_button_states)
 
         # Legg widgets til stacken
+        self.stack.addWidget(self.login_widget)  # Indeks 0
         self.stack.addWidget(self.placeholder_widget)  # Indeks 0
-        self.stack.addWidget(self.add_password_widget)  # Indeks 1
-        self.stack.addWidget(self.show_password_widget)  # Indeks 2
-        self.stack.addWidget(self.backup_widget)  # Indeks 3
         self.stack.addWidget(self.settings_widget)  # Indeks 4
 
         # Sett til å vise hovedvinduet
-        self.stack.setCurrentWidget(self.placeholder_widget)
+        self.stack.setCurrentWidget(self.login_widget)
 
-        # Sett global font og tema basert på brukerinnstillinger
-        self.apply_settings(
-            theme=self.user.settings.theme if self.user.settings else "default",
-            font_size=self.user.settings.font_size if self.user.settings else 12,
-        )
-
-        # Sjekk antall passord og oppdater knappene
-        self.update_button_states()
+        # # Sjekk antall passord og oppdater knappene
+        # self.update_button_states()
 
         # Vis vinduet
         self.show()
 
     def create_side_panel(self, main_layout):
         # Sidepanel for knappene
-        side_panel = QWidget()
-        side_panel.setStyleSheet("background-color: #a6c4be;")
+        self.side_panel = QWidget()
+        self.side_panel.setStyleSheet("background-color: #a6c4be;")
         side_layout = QVBoxLayout()
-        side_panel.setLayout(side_layout)
+        self.side_panel.setLayout(side_layout)
 
         # Juster layouten
         side_layout.setContentsMargins(10, 10, 10, 10)
@@ -146,11 +121,18 @@ class MainWindow(QMainWindow):
         side_layout.addWidget(view_password_button)
         side_layout.addWidget(backup_button)
         side_layout.addWidget(settings_button)
+        # Legg til et strekk-element for å skyve logg ut-knappene til bunnen
+        side_layout.addStretch()
+
+        # Legg logg ut-knappene nederst
         side_layout.addWidget(log_out_button)
         side_layout.addWidget(log_out_quit_button)
 
+        # Start med å skjule sidepanelet
+        self.side_panel.setVisible(False)
+
         # Legg til sidepanelet i hovedlayouten
-        main_layout.addWidget(side_panel)
+        main_layout.addWidget(self.side_panel)
 
     def update_button_states(self):
         try:
@@ -217,7 +199,7 @@ class MainWindow(QMainWindow):
         # Bytt tilbake til placeholder uten å endre innstillinger
         self.stack.setCurrentWidget(self.placeholder_widget)
 
-    def apply_settings(self, theme="default", font_size=12):
+    def apply_settings(self, theme="default", font_size=16):
         # Anvend tema
         self.apply_theme(theme)
 
@@ -244,23 +226,62 @@ class MainWindow(QMainWindow):
             self.set_font_recursively(child, font)
 
     def log_out(self):
-        # Setter flagget for å indikere at brukeren logger ut
-        self.is_logging_out = True
-        self.is_closing_app = False
+        # Skjul sidepanelet når brukeren logger ut
+        self.side_panel.setVisible(False)
         self.logged_out.emit()
-        self.close()
+        self.stack.setCurrentWidget(self.login_widget)
 
     def log_out_quit(self):
-        # Setter flagget for å indikere at applikasjonen skal avsluttes
-        self.is_logging_out = False
-        self.is_closing_app = True
-        self.close()
+        # Lukk applikasjonen helt
+        QApplication.quit()
 
-    def closeEvent(self, event):
-        if self.is_closing_app or not self.is_logging_out:
-            # Lukker applikasjonen helt
-            QApplication.quit()
-            sys.exit(0)  # Avslutter Python-prosessen
-        elif self.is_logging_out:
-            # Tillat å logge ut og gå tilbake til login
-            event.accept()
+    def handle_login(self, credentials):
+        username = credentials["username"]
+        password = credentials["password"]
+
+        # Her bruker du login_manager for å autentisere brukeren
+        user, key, message = self.login_manager.authenticate_user(username, password)
+        if user:
+            print("Login successful, switching to main view.")
+            # Sett `user` og `key` etter vellykket login
+            self.user = user
+            self.key = key
+
+            # Oppdater widgets som trenger nøkkelen
+            self.add_password_widget = AddPasswordWidget(
+                self.user, self.session, self.key, self
+            )
+            self.show_password_widget = ShowPasswordWidget(
+                self.session, self.key, self.user, self
+            )
+            self.backup_widget = BackupWidget(
+                self.user, self.db_path, self.key, self.session
+            )
+
+            # Koble signalene fra de nye widgetene til de riktige funksjonene
+            self.add_password_widget.password_saved.connect(self.update_button_states)
+            self.backup_widget.sync_completed.connect(self.update_button_states)
+            self.show_password_widget.row_deleted.connect(self.update_button_states)
+
+            # Legg de oppdaterte widgets til stacken
+            self.stack.addWidget(self.add_password_widget)  # Indeks 2
+            self.stack.addWidget(self.show_password_widget)  # Indeks 3
+            self.stack.addWidget(self.backup_widget)  # Indeks 4
+
+            # Oppdater innstillingene etter at brukeren er logget inn
+            self.apply_settings(
+                theme=self.user.settings.theme if self.user.settings else "default",
+                font_size=self.user.settings.font_size if self.user.settings else 16,
+            )
+
+            # Vis sidepanelet etter vellykket innlogging
+            self.side_panel.setVisible(True)
+
+            # Sjekk antall passord og oppdater knappene (initialiser status)
+            self.update_button_states()
+
+            # Bytt til placeholder widget eller hovedvisningen etter login
+            self.stack.setCurrentWidget(self.placeholder_widget)
+        else:
+            QMessageBox.critical(self, "Feil", message, QMessageBox.Ok)
+            print("Authentication failed.")

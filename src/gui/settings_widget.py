@@ -21,7 +21,7 @@ class SettingsWidget(QWidget):
         session,
         key,
         current_theme="default",
-        current_font_size=12,
+        current_font_size=16,
         parent=None,
     ):
         super().__init__(parent)

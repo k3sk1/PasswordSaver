@@ -27,7 +27,7 @@ class Settings(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     theme = Column(String, default="default")
-    font_size = Column(Integer, default=12)
+    font_size = Column(Integer, default=16)
 
     # Relasjon til User
     user = relationship("User", back_populates="settings")
