@@ -5,6 +5,7 @@ src/data/salt.json
 /config/config.json
 *.py[cod]
 *$py.class
+venv/
 
 # C extensions
 *.so
