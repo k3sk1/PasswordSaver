@@ -58,9 +58,7 @@ class AddPasswordWidget(QWidget):
 
         # Vis/skjul passord knapp
         self.toggle_password_button = QToolButton()
-        self.toggle_password_button.setText(
-            "\U0001F576"
-        )  # Unicode for solbrille symbol
+        self.toggle_password_button.setText("\U0001F576")  # solbrille symbol
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setStyleSheet(styles.BUTTON_STYLE_CIRCLE)
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
@@ -154,6 +152,9 @@ class AddPasswordWidget(QWidget):
         self.setLayout(main_layout)
 
     def save_password(self):
+        print(f"user: {self.user}")
+        print(f"salt: {self.user.salt}")
+        print(f"key: {self.key}")
         # Hent data fra feltene
         data = self.get_data()
 
@@ -165,34 +166,41 @@ class AddPasswordWidget(QWidget):
             return
 
         try:
+            # Krypter hver relevant kolonne
+            encrypted_service = encrypt_password(data["service"], self.key["service"])
+            encrypted_email = encrypt_password(data["email"], self.key["email"])
+            encrypted_username = encrypt_password(
+                data["username"], self.key["username"]
+            )
+            encrypted_password = encrypt_password(
+                data["password"], self.key["password"]
+            )
+            encrypted_link = encrypt_password(data["link"], self.key["link"])
+            encrypted_tag = encrypt_password(data["tag"], self.key["tag"])
+
             if self.entry_id:
                 # Oppdater eksisterende oppføring
                 entry = self.session.query(PasswordEntry).get(self.entry_id)
                 if entry:
-                    entry.service = data["service"]
-                    entry.email = data["email"]
-                    entry.username = data["username"]
-                    entry.encrypted_password = encrypt_password(
-                        data["password"], self.key
-                    )
-                    entry.link = data["link"]
-                    entry.tag = data["tag"]
+                    entry.service = encrypted_service
+                    entry.email = encrypted_email
+                    entry.username = encrypted_username
+                    entry.encrypted_password = encrypted_password
+                    entry.link = encrypted_link
+                    entry.tag = encrypted_tag
                     self.session.commit()
-
-                    # Gå tilbake til "ShowPasswordWidget" etter oppdatering
                     self.main_window.show_show_password_widget()
                 else:
                     QMessageBox.warning(self, "Feil", "Kunne ikke finne oppføringen.")
             else:
                 # Opprett ny oppføring
-                encrypted_password = encrypt_password(data["password"], self.key)
                 entry = PasswordEntry(
-                    service=data["service"],
-                    email=data["email"],
-                    username=data["username"] if data["username"] else "",
+                    service=encrypted_service,
+                    email=encrypted_email,
+                    username=encrypted_username,
                     encrypted_password=encrypted_password,
-                    link=data["link"] if data["link"] else "",
-                    tag=data["tag"] if data["tag"] else "",
+                    link=encrypted_link,
+                    tag=encrypted_tag,
                     user_id=self.user.id,
                 )
                 self.session.add(entry)

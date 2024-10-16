@@ -1,9 +1,8 @@
 import base64
 import datetime
 import os
-from data.encryption import derive_key, hash_password
+from data.encryption import derive_key_for_column, hash_password
 from data.models import User, Settings
-from sqlalchemy.exc import IntegrityError
 
 
 class LoginManager:
@@ -36,17 +35,25 @@ class LoginManager:
 
         try:
             salt = base64.b64decode(user.salt)
-            derived_key = derive_key(password, salt)
             computed_hash = hash_password(password, salt)
             print("Stored hash:", repr(user.password_hash))
             print("Computed hash:", repr(computed_hash))
             if computed_hash == user.password_hash:
                 print("Authentication successful.")
+                # Utlede nøkler for hver kolonne som trenger kryptering
+                derived_keys = {
+                    "service": derive_key_for_column(password, salt, "service"),
+                    "email": derive_key_for_column(password, salt, "email"),
+                    "username": derive_key_for_column(password, salt, "username"),
+                    "password": derive_key_for_column(password, salt, "password"),
+                    "link": derive_key_for_column(password, salt, "link"),
+                    "tag": derive_key_for_column(password, salt, "tag"),
+                }
                 # Reset failed attempts on successful login
                 user.failed_attempts = 0
                 user.lockout_until = None
                 self.session.commit()
-                return (user, derived_key, None)
+                return (user, derived_keys, None)
             else:
                 print("Invalid password.")
                 user.failed_attempts += 1
@@ -68,8 +75,8 @@ class LoginManager:
             print("Error during authentication:", e)
             return (None, None, "En feil oppstod under autentisering.")
 
-    def create_user(self, username: str, password: str) -> bool:
-        print("Creating user:", username)
+    def register_user(self, username: str, password: str) -> bool:
+        print("Registering user:", username)
         existing_user = self.session.query(User).filter_by(username=username).first()
         if existing_user:
             print("Username already taken.")
@@ -78,7 +85,6 @@ class LoginManager:
         try:
             salt = os.urandom(16)
             hashed_password = hash_password(password, salt)
-            derived_key = derive_key(password, salt)
             new_user = User(
                 username=username,
                 password_hash=hashed_password,
@@ -91,13 +97,20 @@ class LoginManager:
 
             self.session.add(new_user)
             self.session.commit()
-            print("New user created successfully.")
+            print("New user registered successfully.")
             return True
-        except IntegrityError:
-            self.session.rollback()
-            print("IntegrityError: Username already taken.")
-            return False
         except Exception as e:
             self.session.rollback()
-            print("Error during user creation:", e)
+            print("Error during user registration:", e)
             return False
+
+    def get_all_users(self):
+        """
+        Hent alle brukernavn fra databasen.
+        """
+        try:
+            users = self.session.query(User.username).all()
+            return [user.username for user in users]
+        except Exception as e:
+            print("Error retrieving users:", e)
+            return []

@@ -10,13 +10,13 @@ from PySide2.QtWidgets import (
 )
 from PySide2.QtCore import Qt, Signal
 from PySide2.QtGui import QFont
+
 from gui.add_password_widget import AddPasswordWidget
 from gui.placeholder_widget import PlaceholderWidget
 from gui.settings_widget import SettingsWidget
 from gui.show_password_widget import ShowPasswordWidget
 from gui.backup_widget import BackupWidget
 from gui.login_widget import LoginWidget
-
 from data.models import PasswordEntry, Settings
 
 
@@ -53,27 +53,15 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.stack)
 
         # Opprett widgets uten å sette forelder
-        self.login_widget = LoginWidget(
-            session=self.session, db_path=self.db_path, existing=True
-        )
+        self.login_widget = LoginWidget(db_path=self.db_path, existing=True)
         self.placeholder_widget = PlaceholderWidget()
-        self.settings_widget = SettingsWidget(
-            user=None,
-            session=self.session,
-            key=self.key,
-            current_theme="default",
-            current_font_size=16,
-        )
 
         # Kobler signaler
         self.login_widget.login_success.connect(self.handle_login)
-        self.settings_widget.settings_changed.connect(self.apply_settings_and_save)
-        self.settings_widget.settings_cancelled.connect(self.switch_back)
 
         # Legg widgets til stacken
         self.stack.addWidget(self.login_widget)  # Indeks 0
         self.stack.addWidget(self.placeholder_widget)  # Indeks 0
-        self.stack.addWidget(self.settings_widget)  # Indeks 4
 
         # Sett til å vise hovedvinduet
         self.stack.setCurrentWidget(self.login_widget)
@@ -257,16 +245,30 @@ class MainWindow(QMainWindow):
             self.backup_widget = BackupWidget(
                 self.user, self.db_path, self.key, self.session
             )
+            self.settings_widget = SettingsWidget(
+                user=self.user,
+                session=self.session,
+                key=self.key,
+                current_theme=(
+                    self.user.settings.theme if self.user.settings else "default"
+                ),
+                current_font_size=(
+                    self.user.settings.font_size if self.user.settings else 16
+                ),
+            )
 
             # Koble signalene fra de nye widgetene til de riktige funksjonene
             self.add_password_widget.password_saved.connect(self.update_button_states)
             self.backup_widget.sync_completed.connect(self.update_button_states)
             self.show_password_widget.row_deleted.connect(self.update_button_states)
+            self.settings_widget.settings_changed.connect(self.apply_settings_and_save)
+            self.settings_widget.settings_cancelled.connect(self.switch_back)
 
             # Legg de oppdaterte widgets til stacken
             self.stack.addWidget(self.add_password_widget)  # Indeks 2
             self.stack.addWidget(self.show_password_widget)  # Indeks 3
             self.stack.addWidget(self.backup_widget)  # Indeks 4
+            self.stack.addWidget(self.settings_widget)  # Indeks 5
 
             # Oppdater innstillingene etter at brukeren er logget inn
             self.apply_settings(

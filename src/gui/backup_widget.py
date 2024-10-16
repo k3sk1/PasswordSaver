@@ -1,6 +1,8 @@
 from datetime import datetime
 import os
+import shutil
 import tempfile
+import traceback
 from PySide2.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -11,7 +13,7 @@ from PySide2.QtWidgets import (
 from PySide2.QtCore import Qt, Signal
 
 import styles
-from data.encryption import encrypt_file, decrypt_file
+from data.encryption import decrypt_password
 from data.database import get_engine, create_tables, get_session
 from data.models import PasswordEntry
 
@@ -83,7 +85,9 @@ class BackupWidget(QWidget):
                 # Generer et backup-filnavn med tidsstempel
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 backup_filename = f"passwords_backup_{timestamp}.db"
-                backup_path = os.path.join(backup_dir, backup_filename)
+                backup_path = os.path.normpath(
+                    os.path.join(backup_dir, backup_filename)
+                )
 
                 # Opprett en midlertidig database med kun brukerens passord
                 with tempfile.NamedTemporaryFile(
@@ -114,8 +118,8 @@ class BackupWidget(QWidget):
                     temp_session.add(new_entry)
                 temp_session.commit()
 
-                # Krypter den midlertidige databasen og lagre den til backup_path
-                encrypt_file(temp_db_path, self.encryption_key, backup_path)
+                # Lagre databasen som backup
+                shutil.copy2(temp_db_path, backup_path)
 
                 # Rydd opp den midlertidige databasen
                 temp_session.close()
@@ -125,7 +129,7 @@ class BackupWidget(QWidget):
                 # Informer brukeren om suksess
                 QMessageBox.information(
                     self,
-                    "Backup fullført",
+                    "Backup Fullført",
                     f"Backup er lagret til:\n{backup_path}",
                     QMessageBox.Ok,
                 )
@@ -154,8 +158,9 @@ class BackupWidget(QWidget):
         with tempfile.TemporaryDirectory() as temp_dir:
             decrypted_backup_path = os.path.join(temp_dir, "decrypted_backup.db")
             try:
-                # Dekrypter backup filen med riktig parameterrekkefølge
-                decrypt_file(backup_file, self.encryption_key, decrypted_backup_path)
+                # les inn kryptert tabell uten å dekryptere
+                shutil.copy2(backup_file, decrypted_backup_path)
+                print(f"Kopiert backup-fil til {decrypted_backup_path}")
             except Exception as e:
                 QMessageBox.critical(
                     self,
@@ -168,12 +173,12 @@ class BackupWidget(QWidget):
             try:
                 # Sett opp engine og session for backup databasen
                 backup_engine = get_engine(decrypted_backup_path)
-                create_tables(backup_engine)  # Sikre at tabellene finnes
                 backup_session = get_session(backup_engine)
+                print("Backup engine og session er satt opp.")
 
-                # Hent alle passord fra backup (kun brukerens passord)
+                # Hent alle passordoppføringer fra backup
                 backup_passwords = backup_session.query(PasswordEntry).all()
-
+                print("Hentet alle passordoppføringer fra backup.")
                 if not backup_passwords:
                     QMessageBox.information(
                         self,
@@ -183,31 +188,52 @@ class BackupWidget(QWidget):
                     )
                     return
 
-                # Hent alle passord fra nåværende database som tilhører brukeren
+                # Hent alle passordoppføringer fra current db
                 current_passwords = (
                     self.session.query(PasswordEntry)
                     .filter_by(user_id=self.user.id)
                     .all()
                 )
+                print(
+                    f"Hentet alle passordoppføringer fra brukeren med id: {self.user.id}"
+                )
 
                 # Lag en sett av unike identifikatorer for nåværende passord
                 current_identifiers = set(
-                    (p.service, p.email, p.username, p.link, p.tag)
+                    (
+                        decrypt_password(p.service, self.encryption_key["service"]),
+                        decrypt_password(p.email, self.encryption_key["email"]),
+                        decrypt_password(p.username, self.encryption_key["username"]),
+                        decrypt_password(p.link, self.encryption_key["link"]),
+                        decrypt_password(p.tag, self.encryption_key["tag"]),
+                    )
                     for p in current_passwords
+                )
+                print(
+                    "Opprettet sett av unike identifikatorer for eksisterende passord."
                 )
 
                 # Legg til passord fra backup som ikke finnes i nåværende database
                 new_entries = []
                 for entry in backup_passwords:
-                    identifier = (
-                        entry.service,
-                        entry.email,
-                        entry.username,
-                        entry.link,
-                        entry.tag,
-                    )
-                    if identifier not in current_identifiers:
-                        new_entries.append(entry)
+                    try:
+                        identifier = (
+                            decrypt_password(
+                                entry.service, self.encryption_key["service"]
+                            ),
+                            decrypt_password(entry.email, self.encryption_key["email"]),
+                            decrypt_password(
+                                entry.username, self.encryption_key["username"]
+                            ),
+                            decrypt_password(entry.link, self.encryption_key["link"]),
+                            decrypt_password(entry.tag, self.encryption_key["tag"]),
+                        )
+                        print(f"Identifier successfully decrypted: {identifier}")
+                        if identifier not in current_identifiers:
+                            new_entries.append(entry)
+                    except Exception as e:
+                        print(f"Error decrypting entry {entry.service}: {str(e)}")
+                        traceback.print_exc()
 
                 if not new_entries:
                     QMessageBox.information(
@@ -220,31 +246,53 @@ class BackupWidget(QWidget):
 
                 # Legg til de nye passordene i den nåværende databasen
                 for entry in new_entries:
-                    # Kopier nødvendige felt
-                    new_entry = PasswordEntry(
-                        service=entry.service,
-                        email=entry.email,
-                        username=entry.username,
-                        encrypted_password=entry.encrypted_password,
-                        link=entry.link,
-                        tag=entry.tag,
-                        user_id=self.user.id,  # Knytt til den innloggede brukeren
+                    try:
+                        print(
+                            f"Adding entry: {entry.service}, {entry.email}, {entry.username}, {entry.link}, {entry.tag}"
+                        )
+                        new_entry = PasswordEntry(
+                            service=entry.service,
+                            email=entry.email,
+                            username=entry.username,
+                            encrypted_password=entry.encrypted_password,
+                            link=entry.link,
+                            tag=entry.tag,
+                            user_id=self.user.id,
+                        )
+                        self.session.add(new_entry)
+                        self.session.flush()
+                        print(f"Entry added and flushed: {new_entry}")
+                    except Exception as e:
+                        print(f"Error adding entry {entry.service}: {str(e)}")
+                        traceback.print_exc()
+
+                try:
+                    self.session.commit()
+                    print(f"Successfully committed {len(new_entries)} entries.")
+                except SQLAlchemyError as e:
+                    print(f"SQLAlchemyError during commit: {str(e)}")
+                    traceback.print_exc()
+                    QMessageBox.critical(
+                        self,
+                        "Database Feil",
+                        f"En feil oppstod under synkroniseringen:\n{str(e)}",
+                        QMessageBox.Ok,
                     )
-                    self.session.add(new_entry)
-
-                self.session.commit()
-
-                # Emit signal med antall synkroniserte passord
-                self.sync_completed.emit(len(new_entries))
-
-                QMessageBox.information(
-                    self,
-                    "Synkronisering Fullført",
-                    f"Synkroniserte {len(new_entries)} nye passord fra backup.",
-                    QMessageBox.Ok,
-                )
+                    return
+                except Exception as e:
+                    print(f"Unexpected error during commit: {str(e)}")
+                    traceback.print_exc()
+                    QMessageBox.critical(
+                        self,
+                        "Feil",
+                        f"En uventet feil oppstod:\n{str(e)}",
+                        QMessageBox.Ok,
+                    )
+                    return
 
             except SQLAlchemyError as e:
+                print(f"SQLAlchemyError while synchronizing: {str(e)}")
+                traceback.print_exc()
                 QMessageBox.critical(
                     self,
                     "Database Feil",
@@ -252,6 +300,8 @@ class BackupWidget(QWidget):
                     QMessageBox.Ok,
                 )
             except Exception as e:
+                print(f"Uventet feil: {str(e)}")
+                traceback.print_exc()
                 QMessageBox.critical(
                     self,
                     "Feil",
@@ -259,5 +309,10 @@ class BackupWidget(QWidget):
                     QMessageBox.Ok,
                 )
             finally:
-                backup_session.close()
-                backup_engine.dispose()
+                try:
+                    backup_session.close()
+                    backup_engine.dispose()
+                    print("Backup session closed and engine disposed.")
+                except Exception as e:
+                    print(f"Error during cleanup: {str(e)}")
+                    traceback.print_exc()

@@ -13,7 +13,7 @@ from PySide2.QtWidgets import (
     QSizePolicy,
     QHeaderView,
 )
-from PySide2.QtCore import Signal
+from PySide2.QtCore import Signal, Qt
 
 from data.models import PasswordEntry
 from data.encryption import decrypt_password
@@ -144,20 +144,51 @@ class ShowPasswordWidget(QWidget):
             )
             return  # Avslutt funksjonen tidlig hvis ingen passord finnes
         for entry in passwords:
-            self.add_table_row(entry)
+            try:
+                decrypted_service = decrypt_password(entry.service, self.key["service"])
+                decrypted_email = decrypt_password(entry.email, self.key["email"])
+                decrypted_username = decrypt_password(
+                    entry.username, self.key["username"]
+                )
+                decrypted_link = decrypt_password(entry.link, self.key["link"])
+                decrypted_tag = decrypt_password(entry.tag, self.key["tag"])
+
+                self.add_table_row(
+                    {
+                        "id": entry.id,
+                        "service": decrypted_service,
+                        "email": decrypted_email,
+                        "username": decrypted_username,
+                        "link": decrypted_link,
+                        "tag": decrypted_tag,
+                    }
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Feil", f"Kunne ikke dekryptere passord: {str(e)}"
+                )
 
     def add_table_row(self, entry):
         row_position = self.table.rowCount()
         self.table.insertRow(row_position)
 
         # Opprett og sett inn QTableWidgetItem for hver kolonne
-        self.table.setItem(row_position, 0, QTableWidgetItem(entry.service))
-        self.table.setItem(row_position, 1, QTableWidgetItem(entry.email))
-        self.table.setItem(row_position, 2, QTableWidgetItem(entry.username))
+        service_item = QTableWidgetItem(entry["service"])
+        email_item = QTableWidgetItem(entry["email"])
+        username_item = QTableWidgetItem(entry["username"])
+        link_item = QTableWidgetItem(entry["link"])
+        tag_item = QTableWidgetItem(entry["tag"])
+
+        # Lagre entry.id i hver QTableWidgetItem
+        service_item.setData(Qt.UserRole, entry["id"])
+
+        self.table.setItem(row_position, 0, service_item)
+        self.table.setItem(row_position, 1, email_item)
+        self.table.setItem(row_position, 2, username_item)
         # For passordet, vis stjerner eller kryptert tekst
         self.table.setItem(row_position, 3, QTableWidgetItem("*" * 4))  # Placeholder
-        self.table.setItem(row_position, 4, QTableWidgetItem(entry.link))
-        self.table.setItem(row_position, 5, QTableWidgetItem(entry.tag))
+        self.table.setItem(row_position, 4, link_item)
+        self.table.setItem(row_position, 5, tag_item)
 
     def filter_passwords(self, text):
         for row in range(self.table.rowCount()):
@@ -192,18 +223,26 @@ class ShowPasswordWidget(QWidget):
             )
 
             if entry:
-                decrypted_password = decrypt_password(
-                    entry.encrypted_password, self.key
+                decrypted_service = decrypt_password(entry.service, self.key["service"])
+                decrypted_email = decrypt_password(entry.email, self.key["email"])
+                decrypted_username = decrypt_password(
+                    entry.username, self.key["username"]
                 )
+                decrypted_password = decrypt_password(
+                    entry.encrypted_password, self.key["password"]
+                )
+                decrypted_link = decrypt_password(entry.link, self.key["link"])
+                decrypted_tag = decrypt_password(entry.tag, self.key["tag"])
+
                 QMessageBox.information(
                     self,
                     "Passord Detaljer",
-                    f"Tjeneste: {entry.service}\n"
-                    f"E-post: {entry.email}\n"
-                    f"Brukernavn: {entry.username}\n"
+                    f"Tjeneste: {decrypted_service}\n"
+                    f"E-post: {decrypted_email}\n"
+                    f"Brukernavn: {decrypted_username}\n"
                     f"Passord: {decrypted_password}\n"
-                    f"Link: {entry.link}\n"
-                    f"Tag: {entry.tag}",
+                    f"Link: {decrypted_link}\n"
+                    f"Tag: {decrypted_tag}",
                     QMessageBox.Ok,
                 )
         except Exception as e:
@@ -218,35 +257,25 @@ class ShowPasswordWidget(QWidget):
             return
 
         row = selected_items[0].row()
-        service = self.table.item(row, 0).text()
-        email = self.table.item(row, 1).text()
-        username = self.table.item(row, 2).text()
-        link = self.table.item(row, 4).text()
-        tag = self.table.item(row, 5).text()
-
+        service_item = self.table.item(row, 0)
+        entry_id = service_item.data(Qt.UserRole)
         try:
-            entry = (
-                self.session.query(PasswordEntry)
-                .filter_by(
-                    service=service,
-                    email=email,
-                    username=username,
-                    link=link,
-                    tag=tag,
-                    user_id=self.user.id,  # Sikre at det tilhører riktig bruker
-                )
-                .first()
-            )
-
+            entry = self.session.query(PasswordEntry).filter_by(id=entry_id).first()
+            print(f"entry: {entry}")
             if entry:
                 decrypted_password = decrypt_password(
-                    entry.encrypted_password, self.key
+                    entry.encrypted_password, self.key["password"]
                 )
+                # Debugging: Se om vi får det dekrypterte passordet
+                print("Decrypted password:", decrypted_password)
                 QApplication.clipboard().setText(decrypted_password)
+                copied_text = QApplication.clipboard().text()
+                print("Copied to clipboard:", copied_text)
                 QMessageBox.information(
                     self, "Kopiert", "Passordet er kopiert til utklippstavlen."
                 )
         except Exception as e:
+            print("Entry not found in the database.")
             QMessageBox.critical(self, "Feil", f"Kunne ikke kopiere passord: {str(e)}")
 
     def delete_row(self):
@@ -260,12 +289,12 @@ class ShowPasswordWidget(QWidget):
         # Hent raden som er valgt
         row = selected_items[0].row()
 
-        # Hent data fra de nødvendige kolonnene
-        service = self.table.item(row, 0).text()
-        email = self.table.item(row, 1).text()
-        username = self.table.item(row, 2).text()
-        link = self.table.item(row, 4).text()
-        tag = self.table.item(row, 5).text()
+        # Hent ID-en fra tabellen (lagret i UserRole)
+        service_item = self.table.item(row, 0)
+        entry_id = service_item.data(Qt.UserRole)
+
+        # Hent tjeneste navnet for visning i bekreftelsesmeldingen
+        service = service_item.text()
 
         # Bekreft med brukeren før sletting
         reply = QMessageBox.question(
@@ -278,19 +307,8 @@ class ShowPasswordWidget(QWidget):
 
         if reply == QMessageBox.Yes:
             try:
-                # Finn det aktuelle PasswordEntry-objektet i databasen
-                entry = (
-                    self.session.query(PasswordEntry)
-                    .filter_by(
-                        service=service,
-                        email=email,
-                        username=username,
-                        link=link,
-                        tag=tag,
-                        user_id=self.user.id,  # Sikre at det tilhører riktig bruker
-                    )
-                    .first()
-                )
+                # Finn det aktuelle PasswordEntry-objektet i databasen basert på ID
+                entry = self.session.query(PasswordEntry).filter_by(id=entry_id).first()
 
                 if entry:
                     # Slett objektet fra databasen
@@ -351,17 +369,25 @@ class ShowPasswordWidget(QWidget):
             )
 
             if entry:
-                decrypted_password = decrypt_password(
-                    entry.encrypted_password, self.key
+                decrypted_service = decrypt_password(entry.service, self.key["service"])
+                decrypted_email = decrypt_password(entry.email, self.key["email"])
+                decrypted_username = decrypt_password(
+                    entry.username, self.key["username"]
                 )
+                decrypted_password = decrypt_password(
+                    entry.encrypted_password, self.key["password"]
+                )
+                decrypted_link = decrypt_password(entry.link, self.key["link"])
+                decrypted_tag = decrypt_password(entry.tag, self.key["tag"])
+
                 # Bytt til AddPasswordWidget og fyll inn data
                 password_data = {
-                    "service": service,
-                    "email": email,
-                    "username": username,
+                    "service": decrypted_service,
+                    "email": decrypted_email,
+                    "username": decrypted_username,
                     "password": decrypted_password,
-                    "link": link,
-                    "tag": tag,
+                    "link": decrypted_link,
+                    "tag": decrypted_tag,
                 }
                 self.main_window.show_add_password_widget()
                 self.main_window.add_password_widget.fill_fields(
