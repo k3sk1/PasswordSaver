@@ -61,13 +61,10 @@ class MainWindow(QMainWindow):
 
         # Legg widgets til stacken
         self.stack.addWidget(self.login_widget)  # Indeks 0
-        self.stack.addWidget(self.placeholder_widget)  # Indeks 0
+        self.stack.addWidget(self.placeholder_widget)  # Indeks 1
 
         # Sett til å vise hovedvinduet
         self.stack.setCurrentWidget(self.login_widget)
-
-        # # Sjekk antall passord og oppdater knappene
-        # self.update_button_states()
 
         # Vis vinduet
         self.show()
@@ -169,10 +166,16 @@ class MainWindow(QMainWindow):
         # Bytt til settings_widget i stacken
         self.stack.setCurrentWidget(self.settings_widget)
 
+    def switch_back(self):
+        # Bytt tilbake til placeholder uten å endre innstillinger
+        self.stack.setCurrentWidget(self.placeholder_widget)
+
     def apply_settings_and_save(self, settings):
         theme, font_size = settings
-        self.apply_settings(theme=theme, font_size=font_size)
+        self.save_user_settings(theme, font_size)
+        self.apply_settings()
 
+    def save_user_settings(self, theme, font_size):
         # Oppdater brukerinnstillingene i databasen
         if self.user.settings:
             self.user.settings.theme = theme
@@ -183,24 +186,20 @@ class MainWindow(QMainWindow):
             self.session.add(self.user.settings)
         self.session.commit()
 
-    def switch_back(self):
-        # Bytt tilbake til placeholder uten å endre innstillinger
-        self.stack.setCurrentWidget(self.placeholder_widget)
+    def get_user_settings(self):
+        return {
+            "theme": self.user.settings.theme if self.user.settings else "default",
+            "font_size": self.user.settings.font_size if self.user.settings else 16,
+        }
 
-    def apply_settings(self, theme="default", font_size=16):
-        # Anvend tema
-        self.apply_theme(theme)
-
-        # Anvend font-størrelse
-        self.apply_font_size(font_size)
+    def apply_settings(self):
+        settings = self.get_user_settings()
+        self.apply_theme(settings["theme"])
+        self.apply_font_size(settings["font_size"])
 
     def apply_theme(self, theme):
-        if theme == "vintage":
-            self.setStyleSheet("background-color: #f0e68c;")
-            # Legg til flere stilendringer basert på tema
-        else:
-            self.setStyleSheet("background-color: #b4a19e;")
-            # Standard tema stilendringer
+        theme_colors = {"vintage": "#f0e68c", "default": "#b4a19e"}
+        self.setStyleSheet(f"background-color: {theme_colors.get(theme, '#b4a19e')};")
 
     def apply_font_size(self, font_size):
         new_font = QFont()
@@ -271,10 +270,7 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(self.settings_widget)  # Indeks 5
 
             # Oppdater innstillingene etter at brukeren er logget inn
-            self.apply_settings(
-                theme=self.user.settings.theme if self.user.settings else "default",
-                font_size=self.user.settings.font_size if self.user.settings else 16,
-            )
+            self.apply_settings()
 
             # Vis sidepanelet etter vellykket innlogging
             self.side_panel.setVisible(True)
@@ -287,3 +283,6 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.critical(self, "Feil", message, QMessageBox.Ok)
             print("Authentication failed.")
+
+    def switch_to_widget(self, widget):
+        self.stack.setCurrentWidget(widget)

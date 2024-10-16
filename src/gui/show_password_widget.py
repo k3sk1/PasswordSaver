@@ -172,23 +172,19 @@ class ShowPasswordWidget(QWidget):
         row_position = self.table.rowCount()
         self.table.insertRow(row_position)
 
-        # Opprett og sett inn QTableWidgetItem for hver kolonne
-        service_item = QTableWidgetItem(entry["service"])
-        email_item = QTableWidgetItem(entry["email"])
-        username_item = QTableWidgetItem(entry["username"])
-        link_item = QTableWidgetItem(entry["link"])
-        tag_item = QTableWidgetItem(entry["tag"])
+        # Liste over feltene
+        columns = ["service", "email", "username", "*", "link", "tag"]
+        for col_index, field in enumerate(columns):
+            if field == "*":
+                item = QTableWidgetItem("*" * 4)  # Placeholder for passord
+            else:
+                item = QTableWidgetItem(entry[field])
 
-        # Lagre entry.id i hver QTableWidgetItem
-        service_item.setData(Qt.UserRole, entry["id"])
+            # Lagre entry.id i den første cellen
+            if col_index == 0:
+                item.setData(Qt.UserRole, entry["id"])
 
-        self.table.setItem(row_position, 0, service_item)
-        self.table.setItem(row_position, 1, email_item)
-        self.table.setItem(row_position, 2, username_item)
-        # For passordet, vis stjerner eller kryptert tekst
-        self.table.setItem(row_position, 3, QTableWidgetItem("*" * 4))  # Placeholder
-        self.table.setItem(row_position, 4, link_item)
-        self.table.setItem(row_position, 5, tag_item)
+            self.table.setItem(row_position, col_index, item)
 
     def filter_passwords(self, text):
         for row in range(self.table.rowCount()):
@@ -286,17 +282,12 @@ class ShowPasswordWidget(QWidget):
             )
             return
 
-        # Hent raden som er valgt
+        # Hent raden og entry_id fra tabellen
         row = selected_items[0].row()
+        entry_id = self.table.item(row, 0).data(Qt.UserRole)
+        service = self.table.item(row, 0).text()
 
-        # Hent ID-en fra tabellen (lagret i UserRole)
-        service_item = self.table.item(row, 0)
-        entry_id = service_item.data(Qt.UserRole)
-
-        # Hent tjeneste navnet for visning i bekreftelsesmeldingen
-        service = service_item.text()
-
-        # Bekreft med brukeren før sletting
+        # Bekreft sletting
         reply = QMessageBox.question(
             self,
             "Bekreft Sletting",
@@ -307,32 +298,19 @@ class ShowPasswordWidget(QWidget):
 
         if reply == QMessageBox.Yes:
             try:
-                # Finn det aktuelle PasswordEntry-objektet i databasen basert på ID
-                entry = self.session.query(PasswordEntry).filter_by(id=entry_id).first()
-
+                entry = self.session.query(PasswordEntry).get(entry_id)
                 if entry:
-                    # Slett objektet fra databasen
                     self.session.delete(entry)
                     self.session.commit()
-
-                    # Fjern raden fra tabellen
                     self.table.removeRow(row)
-
-                    # Emit signal for å oppdatere knappestatusene
                     self.row_deleted.emit()
                 else:
                     QMessageBox.warning(
-                        self,
-                        "Ikke Funnet",
-                        "Passordet ble ikke funnet i databasen.",
-                        QMessageBox.Ok,
+                        self, "Ikke Funnet", "Passordet ble ikke funnet i databasen."
                     )
             except Exception as e:
                 QMessageBox.critical(
-                    self,
-                    "Feil",
-                    f"Kunne ikke slette passordet: {str(e)}",
-                    QMessageBox.Ok,
+                    self, "Feil", f"Kunne ikke slette passordet: {str(e)}"
                 )
 
     def edit_row(self):
