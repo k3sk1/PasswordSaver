@@ -38,7 +38,6 @@ class SettingsWidget(QWidget):
         theme_layout.setSpacing(10)
         self.theme_label = QLabel("Velg tema")
         self.theme_combo = QComboBox()
-        # theme_combo.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.theme_combo.addItems(["default", "vintage"])
         self.theme_combo.setCurrentText(current_theme)
         theme_layout.addWidget(self.theme_label)

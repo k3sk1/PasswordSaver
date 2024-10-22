@@ -34,12 +34,10 @@ class ShowPasswordWidget(QWidget):
 
         # Opprett søkefelt
         self.search_input = QLineEdit()
-        # self.search_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.search_input.setPlaceholderText("Skriv inn for å søke...")
         self.search_input.textChanged.connect(self.filter_passwords)
 
         search_layout = QHBoxLayout()
-        # search_layout.addWidget(self.search_label)
         search_layout.addWidget(self.search_input)
         search_layout.setAlignment(Qt.AlignTop)
 
@@ -59,10 +57,6 @@ class ShowPasswordWidget(QWidget):
         self.delete_button = QPushButton("Slett passord (rad)")
         self.go_to_web_button = QPushButton("Gå til nettsted og kopier passord")
         self.edit_button = QPushButton("Endre rad")
-        # self.copy_button.setStyleSheet(styles.BUTTON_STYLE)
-        # self.delete_button.setStyleSheet(styles.BUTTON_STYLE2)
-        # self.go_to_web_button.setStyleSheet(styles.BUTTON_STYLE)
-        # self.edit_button.setStyleSheet(styles.BUTTON_STYLE)
         self.copy_button.clicked.connect(self.copy_password)
         self.delete_button.clicked.connect(self.delete_row)
         self.go_to_web_button.clicked.connect(self.go_to_web)
@@ -105,8 +99,6 @@ class ShowPasswordWidget(QWidget):
         self.setStyleSheet(
             f"background-color: {self.main_window.style_manager.theme['background']};"
         )
-
-        print("test")
 
     def setup_table(self):
         # Opprett tabell

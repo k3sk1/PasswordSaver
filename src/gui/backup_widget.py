@@ -11,12 +11,11 @@ from PySide2.QtWidgets import (
     QMessageBox,
 )
 from PySide2.QtCore import Qt, Signal
+from sqlalchemy.exc import SQLAlchemyError
 
 from data.encryption import decrypt_password
 from data.database import get_engine, create_tables, get_session
 from data.models import PasswordEntry
-
-from sqlalchemy.exc import SQLAlchemyError
 
 
 class BackupWidget(QWidget):

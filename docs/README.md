@@ -1,17 +1,39 @@
 # PassordSkap
 
-## Fargepalett
-[Vintage Glass Palette](https://www.schemecolor.com/vintage-glass.php)
-
 ## Funksjonalitet
-- Kan registrere flere brukere
-- Kan lagre og søke/vise passord
-- Sikkerhetskopiering og synkronisere mellom pcer, ved hjelp av sikkerhetskopieringen
-- Kan gjøre skriftstørrelse større, slik at det er lettere å se
+- Kan registrere flere brukere.
+- Minimumslengde for passord til PassordSkapet.
+- Brute force beskyttelse for innlogging.
+- Kan lagre, søke/vise passord, kopiere innhold til utklippsbrett ved dobbeltklipp i tabell.
+- Kan generere nye passord.
+- Kan gå til nettside og kopiere passord.
+- Mulighet for backup.
+- Mulighet for å synkronisere mellom enheter ved hjelp av back up.
+- Kan bytte farge tema i appen (bare default er implementert, men man kan lett legge til nye i styles.py THEMES).
+- Kan endre på skriftstørrelse.
 
-## Liste over funksjoner som skal implementeres
-- Evne til å generere nye passord
-- Evne til å lagre passord brukt i virkeligheten
+## Liste over funksjoner som kan implementeres
+- add_password_widget: 
+    - Bruker tilpasset ordbok for generering av nye passordfraser.
+    - Filtrering på emne feltet i tabellen.
+- Ny widget: En wiki for passord og appen.
+
+
+## Fargepalett
+- se default i styles.py
+
+## Bilder fra app
+### Legg til passord
+![Legg til passord](../images/add_password_widget.png)
+
+### Vis passord
+![Vis passord](../images/show_password_widget.png)
+
+### Backup
+![Backup](../images/backup_widget.png)
+
+### Settings
+![Settings](../images/settings_widget.png)
 
 ## Lisens
 

@@ -12,6 +12,7 @@ from PySide2.QtWidgets import (
     QHBoxLayout,
 )
 from PySide2.QtCore import Qt, Signal
+
 from data.encryption import encrypt_password
 from data.models import PasswordEntry
 
