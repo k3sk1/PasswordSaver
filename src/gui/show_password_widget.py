@@ -5,7 +5,6 @@ from PySide2.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
-    QLabel,
     QHBoxLayout,
     QPushButton,
     QMessageBox,
@@ -17,7 +16,6 @@ from PySide2.QtCore import Signal, Qt
 
 from data.models import PasswordEntry
 from data.encryption import decrypt_password
-import styles
 
 
 class ShowPasswordWidget(QWidget):
@@ -35,21 +33,20 @@ class ShowPasswordWidget(QWidget):
         self.setWindowTitle("Vis Passord")
 
         # Opprett søkefelt
-        self.search_label = QLabel("Søk:")
-        self.search_label.setStyleSheet(styles.LABEL_STYLE)
         self.search_input = QLineEdit()
-        self.search_input.setStyleSheet(styles.LINE_EDIT_STYLE)
+        # self.search_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.search_input.setPlaceholderText("Skriv inn for å søke...")
         self.search_input.textChanged.connect(self.filter_passwords)
 
         search_layout = QHBoxLayout()
-        search_layout.addWidget(self.search_label)
+        # search_layout.addWidget(self.search_label)
         search_layout.addWidget(self.search_input)
+        search_layout.setAlignment(Qt.AlignTop)
 
         # Sett opp hovedlayout
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setSpacing(30)
         main_layout.addLayout(search_layout)
 
         self.setLayout(main_layout)
@@ -62,28 +59,32 @@ class ShowPasswordWidget(QWidget):
         self.delete_button = QPushButton("Slett passord (rad)")
         self.go_to_web_button = QPushButton("Gå til nettsted og kopier passord")
         self.edit_button = QPushButton("Endre rad")
-        self.copy_button.setStyleSheet(styles.BUTTON_STYLE)
-        self.delete_button.setStyleSheet(styles.BUTTON_STYLE2)
-        self.go_to_web_button.setStyleSheet(styles.BUTTON_STYLE)
-        self.edit_button.setStyleSheet(styles.BUTTON_STYLE)
+        # self.copy_button.setStyleSheet(styles.BUTTON_STYLE)
+        # self.delete_button.setStyleSheet(styles.BUTTON_STYLE2)
+        # self.go_to_web_button.setStyleSheet(styles.BUTTON_STYLE)
+        # self.edit_button.setStyleSheet(styles.BUTTON_STYLE)
         self.copy_button.clicked.connect(self.copy_password)
         self.delete_button.clicked.connect(self.delete_row)
         self.go_to_web_button.clicked.connect(self.go_to_web)
         self.edit_button.clicked.connect(self.edit_row)
 
+        # initialisere stiler og kobler mot theme changed i main window
+        self.main_window.theme_changed.connect(self.init_ui_show_pw)
+        self.init_ui_show_pw()
+
         # Opprett horisontal layout for knappene
         button_layout_1 = QHBoxLayout()
-        button_layout_1.addStretch()  # Skyver knappene til høyre
+        # button_layout_1.addStretch()  # Skyver knappene til høyre
         button_layout_1.addWidget(self.copy_button)
         button_layout_1.addWidget(self.delete_button)
-        button_layout_1.addStretch()  # Skyver knappene til venstre og høyre
+        # button_layout_1.addStretch()  # Skyver knappene til venstre og høyre
 
         # Opprett horisontal layout for den andre raden med knapper
         button_layout_2 = QHBoxLayout()
-        button_layout_2.addStretch()  # Skyver knappene til høyre
+        # button_layout_2.addStretch()  # Skyver knappene til høyre
         button_layout_2.addWidget(self.go_to_web_button)
         button_layout_2.addWidget(self.edit_button)
-        button_layout_2.addStretch()  # Skyver knappene til venstre og høyre
+        # button_layout_2.addStretch()  # Skyver knappene til venstre og høyre
 
         # Opprett en vertikal layout som holder begge radene
         button_layout = QVBoxLayout()
@@ -91,13 +92,28 @@ class ShowPasswordWidget(QWidget):
         button_layout.addLayout(button_layout_2)
 
         main_layout.addLayout(button_layout)
+        main_layout.addStretch()
+
+    def init_ui_show_pw(self):
+        self.main_window.style_manager.apply_line_edit_style(self.search_input)
+        self.main_window.style_manager.apply_table_style(self.table)
+        self.main_window.style_manager.apply_button_style_1(self.copy_button)
+        self.main_window.style_manager.apply_button_style_1(self.go_to_web_button)
+        self.main_window.style_manager.apply_button_style_1(self.edit_button)
+        self.main_window.style_manager.apply_button_style_2(self.delete_button)
+
+        self.setStyleSheet(
+            f"background-color: {self.main_window.style_manager.theme['background']};"
+        )
+
+        print("test")
 
     def setup_table(self):
         # Opprett tabell
         self.table = QTableWidget()
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(
-            ["Tjeneste", "E-post", "Brukernavn", "Passord", "Link", "Tag"]
+            ["Tjeneste", "E-post", "Brukernavn", "Passord", "Link", "Emne"]
         )
 
         header = self.table.horizontalHeader()
@@ -108,18 +124,22 @@ class ShowPasswordWidget(QWidget):
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Brukernavn
         header.setSectionResizeMode(3, QHeaderView.Fixed)  # Passord
         header.setSectionResizeMode(4, QHeaderView.Stretch)  # Link
-        header.setSectionResizeMode(5, QHeaderView.Fixed)  # Tag
+        header.setSectionResizeMode(5, QHeaderView.Fixed)  # Emne
 
         # Sett minimum bredde for "Brukernavn"
         self.table.setColumnWidth(2, 150)  # Brukernavn
 
         # Sett maksimum bredde for "Passord" og "Tag"
-        self.table.setColumnWidth(3, 120)  # Passord
-        self.table.setColumnWidth(5, 120)  # Tag
+        self.table.setColumnWidth(3, 170)  # Passord
+        self.table.setColumnWidth(5, 120)  # Emne
 
         # Sett sizePolicy for å fylle plassen dynamisk
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        # Sett en standard radhøyde
+        self.table.verticalHeader().setDefaultSectionSize(60)
+
+        # Tillat valg av celler, ikke bare rader
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
@@ -128,6 +148,7 @@ class ShowPasswordWidget(QWidget):
         # Legg til tabellen i layouten
         main_layout = self.layout()
         main_layout.addWidget(self.table)
+        main_layout.addStretch()
 
     def load_passwords(self):
         self.table.setRowCount(0)  # Tøm tabellen først
@@ -168,6 +189,16 @@ class ShowPasswordWidget(QWidget):
                     self, "Feil", f"Kunne ikke dekryptere passord: {str(e)}"
                 )
 
+        # Etter radene er lagt til, juster høyden på tabellen basert på antall rader
+        row_count = self.table.rowCount()
+        row_height = self.table.verticalHeader().defaultSectionSize()
+        header_height = self.table.horizontalHeader().height()
+        total_height = row_count * row_height + header_height + 2  # Juster for marginer
+
+        # Sett tabellens høyde basert på antall rader
+        self.table.setMinimumHeight(total_height)
+        self.table.setMaximumHeight(total_height)
+
     def add_table_row(self, entry):
         row_position = self.table.rowCount()
         self.table.insertRow(row_position)
@@ -198,51 +229,71 @@ class ShowPasswordWidget(QWidget):
 
     def view_password(self, row, column):
         try:
-            # Hent PasswordEntry fra databasen basert på row og user_id
-            service = self.table.item(row, 0).text()
-            email = self.table.item(row, 1).text()
-            username = self.table.item(row, 2).text()
-            link = self.table.item(row, 4).text()
-            tag = self.table.item(row, 5).text()
+            # Hent teksten fra cellen som er valgt ved dobbeltklikk
+            cell_text = self.table.item(row, column).text()
 
-            entry = (
-                self.session.query(PasswordEntry)
-                .filter_by(
-                    service=service,
-                    email=email,
-                    username=username,
-                    link=link,
-                    tag=tag,
-                    user_id=self.user.id,  # Sikre at det tilhører riktig bruker
-                )
-                .first()
+            # Kopier cellens tekst til utklippstavlen
+            QApplication.clipboard().setText(cell_text)
+            copied_text = QApplication.clipboard().text()
+
+            # Vis en melding om at tekst er kopiert
+            QMessageBox.information(
+                self,
+                "Kopiert",
+                f"Teksten '{copied_text}' er kopiert til utklippstavlen.",
             )
-
-            if entry:
-                decrypted_service = decrypt_password(entry.service, self.key["service"])
-                decrypted_email = decrypt_password(entry.email, self.key["email"])
-                decrypted_username = decrypt_password(
-                    entry.username, self.key["username"]
-                )
-                decrypted_password = decrypt_password(
-                    entry.encrypted_password, self.key["password"]
-                )
-                decrypted_link = decrypt_password(entry.link, self.key["link"])
-                decrypted_tag = decrypt_password(entry.tag, self.key["tag"])
-
-                QMessageBox.information(
-                    self,
-                    "Passord Detaljer",
-                    f"Tjeneste: {decrypted_service}\n"
-                    f"E-post: {decrypted_email}\n"
-                    f"Brukernavn: {decrypted_username}\n"
-                    f"Passord: {decrypted_password}\n"
-                    f"Link: {decrypted_link}\n"
-                    f"Tag: {decrypted_tag}",
-                    QMessageBox.Ok,
-                )
         except Exception as e:
-            QMessageBox.critical(self, "Feil", f"Kunne ikke vise passord: {str(e)}")
+            QMessageBox.critical(self, "Feil", f"Kunne ikke kopiere tekst: {str(e)}")
+
+    # def view_password(self, row, column):
+    #     print("test")
+    #     try:
+    #         print("test")
+    #         # Hent PasswordEntry fra databasen basert på row og user_id
+    #         service = self.table.item(row, 0).text()
+    #         email = self.table.item(row, 1).text()
+    #         username = self.table.item(row, 2).text()
+    #         link = self.table.item(row, 4).text()
+    #         tag = self.table.item(row, 5).text()
+
+    #         entry = (
+    #             self.session.query(PasswordEntry)
+    #             .filter_by(
+    #                 service=service,
+    #                 email=email,
+    #                 username=username,
+    #                 link=link,
+    #                 tag=tag,
+    #                 user_id=self.user.id,  # Sikre at det tilhører riktig bruker
+    #             )
+    #             .first()
+    #         )
+
+    #         if entry:
+    #             decrypted_service = decrypt_password(entry.service, self.key["service"])
+    #             decrypted_email = decrypt_password(entry.email, self.key["email"])
+    #             decrypted_username = decrypt_password(
+    #                 entry.username, self.key["username"]
+    #             )
+    #             decrypted_password = decrypt_password(
+    #                 entry.encrypted_password, self.key["password"]
+    #             )
+    #             decrypted_link = decrypt_password(entry.link, self.key["link"])
+    #             decrypted_tag = decrypt_password(entry.tag, self.key["tag"])
+
+    #             QMessageBox.information(
+    #                 self,
+    #                 "Passord Detaljer",
+    #                 f"Tjeneste: {decrypted_service}\n"
+    #                 f"E-post: {decrypted_email}\n"
+    #                 f"Brukernavn: {decrypted_username}\n"
+    #                 f"Passord: {decrypted_password}\n"
+    #                 f"Link: {decrypted_link}\n"
+    #                 f"Tag: {decrypted_tag}",
+    #                 QMessageBox.Ok,
+    #             )
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Feil", f"Kunne ikke vise passord: {str(e)}")
 
     def copy_password(self):
         selected_items = self.table.selectedItems()
@@ -276,6 +327,7 @@ class ShowPasswordWidget(QWidget):
 
     def delete_row(self):
         selected_items = self.table.selectedItems()
+        print(f"Selected items in delete_row: {selected_items}")
         if not selected_items:
             QMessageBox.warning(
                 self, "Ingen Valgt", "Vennligst velg et passord fra tabellen."
@@ -315,6 +367,7 @@ class ShowPasswordWidget(QWidget):
 
     def edit_row(self):
         selected_items = self.table.selectedItems()
+        print(f"Selected items in edit_row: {selected_items}")
         if not selected_items:
             QMessageBox.warning(
                 self, "Ingen Valgt", "Vennligst velg et passord fra tabellen."
@@ -323,30 +376,15 @@ class ShowPasswordWidget(QWidget):
 
         # Hent raden som er valgt
         row = selected_items[0].row()
+        service_item = self.table.item(row, 0)
+        entry_id = service_item.data(Qt.UserRole)
 
-        # Hent data fra de nødvendige kolonnene
-        service = self.table.item(row, 0).text()
-        email = self.table.item(row, 1).text()
-        username = self.table.item(row, 2).text()
-        link = self.table.item(row, 4).text()
-        tag = self.table.item(row, 5).text()
+        print(f"Entry ID: {entry_id}")
 
-        # Hent passordet fra databasen (dekryptert)
         try:
-            entry = (
-                self.session.query(PasswordEntry)
-                .filter_by(
-                    service=service,
-                    email=email,
-                    username=username,
-                    link=link,
-                    tag=tag,
-                    user_id=self.user.id,
-                )
-                .first()
-            )
-
+            entry = self.session.query(PasswordEntry).filter_by(id=entry_id).first()
             if entry:
+                # Dekrypter feltene
                 decrypted_service = decrypt_password(entry.service, self.key["service"])
                 decrypted_email = decrypt_password(entry.email, self.key["email"])
                 decrypted_username = decrypt_password(
@@ -358,7 +396,7 @@ class ShowPasswordWidget(QWidget):
                 decrypted_link = decrypt_password(entry.link, self.key["link"])
                 decrypted_tag = decrypt_password(entry.tag, self.key["tag"])
 
-                # Bytt til AddPasswordWidget og fyll inn data
+                # Sett dataene i redigeringswidgeten (AddPasswordWidget eller liknende)
                 password_data = {
                     "service": decrypted_service,
                     "email": decrypted_email,
@@ -369,7 +407,7 @@ class ShowPasswordWidget(QWidget):
                 }
                 self.main_window.show_add_password_widget()
                 self.main_window.add_password_widget.fill_fields(
-                    password_data, entry.id
+                    password_data, entry_id
                 )
             else:
                 QMessageBox.warning(
@@ -377,6 +415,8 @@ class ShowPasswordWidget(QWidget):
                 )
         except Exception as e:
             QMessageBox.critical(self, "Feil", f"Kunne ikke hente passordet: {str(e)}")
+
+    # Do nothing else for now, just verify selection works
 
     def go_to_web(self):
         selected_items = self.table.selectedItems()

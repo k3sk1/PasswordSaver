@@ -6,69 +6,67 @@ from PySide2.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QMessageBox,
-    QMenuBar,
     QAction,
+    QMenu,
 )
 from PySide2.QtCore import Qt, Signal
-import styles
 from utils.login_manager import LoginManager
 
 
 class LoginWidget(QWidget):
     login_success = Signal(dict)
 
-    def __init__(self, db_path, existing=True, parent=None):
+    def __init__(self, db_path, style_manager, existing=True, parent=None):
         super().__init__(parent)
         self.db_path = db_path
         self.login_manager = LoginManager(db_path)
+        self.style_manager = style_manager
 
         self.mode = "login" if existing else "register"
 
+        # Create a button that will show the menu when clicked
+        self.user_menu_button = QPushButton("Bytt Bruker")
+
+        # Create a dropdown menu (QMenu)
+        self.user_menu = QMenu(self)
+
+        # Populate the menu with some example actions (replace with actual users)
+        self.populate_user_menu()
+
+        # Assign the menu to the button
+        self.user_menu_button.setMenu(self.user_menu)
+
         # Create labels and input fields
-        self.username_label = QLabel("Brukernavn:")
-        self.username_label.setAlignment(Qt.AlignCenter)
-        self.username_label.setStyleSheet(styles.LABEL_STYLE)
+        self.log_in_title = QLabel("Logg inn")
+        self.log_in_title.setStyleSheet("font-weight: bold;")
+        self.log_in_title.setAlignment(Qt.AlignCenter)
 
         self.username_input = QLineEdit()
-        self.username_input.setStyleSheet(styles.PASSWORD_STYLE)
-        self.username_input.setPlaceholderText("Skriv inn ditt brukernavn")
+        self.username_input.setPlaceholderText("Brukernavn")
         self.username_input.setMinimumWidth(200)
 
-        self.password_label = QLabel("Passord:")
-        self.password_label.setAlignment(Qt.AlignCenter)
-        self.password_label.setStyleSheet(styles.LABEL_STYLE)
-
         self.password_input = QLineEdit()
-        self.password_input.setStyleSheet(styles.PASSWORD_STYLE)
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setPlaceholderText("Skriv inn ditt passord")
+        self.password_input.setPlaceholderText("Passord")
         self.password_input.setMinimumWidth(200)
 
         # Confirm password field (only for registration)
-        self.confirm_password_label = QLabel("Bekreft passord:")
-        self.confirm_password_label.setAlignment(Qt.AlignCenter)
-        self.confirm_password_label.setStyleSheet(styles.LABEL_STYLE)
-
         self.confirm_password_input = QLineEdit()
-        self.confirm_password_input.setStyleSheet(styles.PASSWORD_STYLE)
         self.confirm_password_input.setEchoMode(QLineEdit.Password)
-        self.confirm_password_input.setPlaceholderText("Bekreft ditt passord")
+        self.confirm_password_input.setPlaceholderText("Bekreft passord")
         self.confirm_password_input.setMinimumWidth(200)
 
         # Ok and Cancel buttons
         self.ok_button = QPushButton("OK")
-        self.ok_button.setStyleSheet(styles.BUTTON_STYLE)
         self.ok_button.clicked.connect(self.on_ok)
 
         self.cancel_button = QPushButton("Tøm felt")
-        self.cancel_button.setStyleSheet(styles.BUTTON_STYLE)
         self.cancel_button.clicked.connect(self.clear_inputs)
 
         # Switch mode button
         self.switch_mode_button = QPushButton(
             "Opprett ny bruker" if existing else "Tilbake til innlogging"
         )
-        self.switch_mode_button.setStyleSheet(styles.BUTTON_STYLE)
         self.switch_mode_button.clicked.connect(self.switch_mode)
 
         # Button layout for ok and cancel buttons
@@ -81,6 +79,7 @@ class LoginWidget(QWidget):
         # Layout for switch mode button
         mode_switch_layout = QHBoxLayout()
         mode_switch_layout.addStretch()
+        mode_switch_layout.addWidget(self.user_menu_button)
         mode_switch_layout.addWidget(self.switch_mode_button)
         mode_switch_layout.addStretch()
 
@@ -105,16 +104,13 @@ class LoginWidget(QWidget):
         confirm_password_layout.addStretch()
 
         # Add username, password, and confirm password fields
-        main_layout.addWidget(self.username_label)
+        main_layout.addWidget(self.log_in_title)
         main_layout.addLayout(username_layout)
-        main_layout.addWidget(self.password_label)
         main_layout.addLayout(password_layout)
-        main_layout.addWidget(self.confirm_password_label)
         main_layout.addLayout(confirm_password_layout)
 
         # Hide confirm password fields in login mode
         if self.mode == "login":
-            self.confirm_password_label.hide()
             self.confirm_password_input.hide()
 
         # Add buttons
@@ -123,42 +119,39 @@ class LoginWidget(QWidget):
 
         self.setLayout(main_layout)
 
-        # Menu bar for switching user
-        self.menu_bar = QMenuBar(self)
-        self.layout().setMenuBar(self.menu_bar)
+        self.init_ui_login()
 
-        # Add a "Switch User" menu
-        self.switch_user_menu = self.menu_bar.addMenu("Bytt Bruker")
-        self.populate_user_menu()
+    def init_ui_login(self):
+        # Bruk style_manager til å sette stiler på widgets
+        self.style_manager.apply_password_input_style(self.username_input)
+        self.style_manager.apply_password_input_style(self.password_input)
+        self.style_manager.apply_password_input_style(self.confirm_password_input)
+        self.style_manager.apply_button_style(self.user_menu_button)
+        self.style_manager.apply_button_style_1(self.ok_button)
+        self.style_manager.apply_button_style_1(self.switch_mode_button)
+        self.style_manager.apply_button_style_2(self.cancel_button)
 
     def switch_mode(self):
         if self.mode == "login":
             self.mode = "register"
             self.setWindowTitle("Opprett Bruker")
+            self.log_in_title.setText("Registrer Bruker")
             self.switch_mode_button.setText("Tilbake til innlogging")
             self.clear_inputs()
-            self.confirm_password_label.show()
             self.confirm_password_input.show()
-            self.switch_user_menu.menuAction().setVisible(False)
-
-            # Legg til en tom "Bytt Bruker"-fane for å beholde plasseringen av menylinjen
-            self.empty_menu = self.menu_bar.addMenu(" ")
+            self.user_menu_button.setVisible(False)  # Skjul "Bytt Bruker"-knappen
         else:
             self.mode = "login"
             self.setWindowTitle("Innlogging")
+            self.log_in_title.setText("Logg inn")
             self.switch_mode_button.setText("Opprett ny bruker")
-            self.confirm_password_label.hide()
             self.confirm_password_input.hide()
 
             # Tøm passordfeltene når vi bytter til innloggingsmodus, men la brukernavnet være
             self.password_input.clear()
             self.confirm_password_input.clear()
 
-            self.switch_user_menu.menuAction().setVisible(True)
-
-            # Fjern den tomme "Bytt Bruker"-fanen
-            self.menu_bar.removeAction(self.empty_menu.menuAction())
-            del self.empty_menu
+            self.user_menu_button.setVisible(True)  # Vis "Bytt Bruker"-knappen igjen)
 
     def on_ok(self):
         username = self.username_input.text().strip()
@@ -218,8 +211,8 @@ class LoginWidget(QWidget):
         self.confirm_password_input.clear()
 
     def populate_user_menu(self):
-        # Clear the menu first to avoid duplicates when refilling it
-        self.switch_user_menu.clear()
+        # Clear the menu first to avoid duplicates
+        self.user_menu.clear()
 
         # Get all users from the database via a query function
         all_users = self.login_manager.get_all_users()
@@ -231,7 +224,7 @@ class LoginWidget(QWidget):
             # Create an action for each user that can be selected
             user_action = QAction(user, self)
             user_action.triggered.connect(create_user_action(user))
-            self.switch_user_menu.addAction(user_action)
+            self.user_menu.addAction(user_action)
 
     def switch_to_user(self, user):
         # Update the username input with the selected username

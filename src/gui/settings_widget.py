@@ -8,7 +8,6 @@ from PySide2.QtWidgets import (
     QHBoxLayout,
 )
 from PySide2.QtCore import Signal, Qt
-import styles
 
 
 class SettingsWidget(QWidget):
@@ -17,23 +16,16 @@ class SettingsWidget(QWidget):
 
     def __init__(
         self,
-        user,
-        session,
-        key,
+        main_window,
         current_theme="default",
         current_font_size=16,
         parent=None,
     ):
         super().__init__(parent)
 
-        self.user = user
-        self.session = session
-        self.key = key
+        self.main_window = main_window
 
         self.setWindowTitle("Innstillinger")
-        self.setStyleSheet(
-            "background-color: #f0f0f0;"
-        )  # Valgfritt: Sett bakgrunnsfarge
 
         # Hovedlayout
         main_layout = QVBoxLayout()
@@ -44,26 +36,23 @@ class SettingsWidget(QWidget):
         # Layout for temavalg
         theme_layout = QHBoxLayout()
         theme_layout.setSpacing(10)
-        theme_label = QLabel("Velg tema:")
-        theme_label.setStyleSheet(styles.LABEL_STYLE)
-        theme_combo = QComboBox()
-        theme_combo.setStyleSheet(styles.LINE_EDIT_STYLE)
-        theme_combo.addItems(["default", "vintage"])
-        theme_combo.setCurrentText(current_theme)
-        theme_layout.addWidget(theme_label)
-        theme_layout.addWidget(theme_combo)
+        self.theme_label = QLabel("Velg tema")
+        self.theme_combo = QComboBox()
+        # theme_combo.setStyleSheet(styles.LINE_EDIT_STYLE)
+        self.theme_combo.addItems(["default", "vintage"])
+        self.theme_combo.setCurrentText(current_theme)
+        theme_layout.addWidget(self.theme_label)
+        theme_layout.addWidget(self.theme_combo)
 
         # Layout for font-størrelse valg
         font_size_layout = QHBoxLayout()
         font_size_layout.setSpacing(10)
-        font_size_label = QLabel("Velg font-størrelse:")
-        font_size_label.setStyleSheet(styles.LABEL_STYLE)
-        font_size_spin = QSpinBox()
-        font_size_spin.setRange(8, 48)
-        font_size_spin.setValue(current_font_size)
-        font_size_spin.setStyleSheet(styles.LINE_EDIT_STYLE)
-        font_size_layout.addWidget(font_size_label)
-        font_size_layout.addWidget(font_size_spin)
+        self.font_size_label = QLabel("Velg font-størrelse")
+        self.font_size_spin = QSpinBox()
+        self.font_size_spin.setRange(8, 48)
+        self.font_size_spin.setValue(current_font_size)
+        font_size_layout.addWidget(self.font_size_label)
+        font_size_layout.addWidget(self.font_size_spin)
 
         # Legg til innstillingslayouts i hovedlayouten
         main_layout.addLayout(theme_layout)
@@ -74,16 +63,17 @@ class SettingsWidget(QWidget):
         buttons_layout.setSpacing(20)
         buttons_layout.addStretch()
 
-        save_button = QPushButton("Lagre")
-        save_button.setStyleSheet(styles.BUTTON_STYLE)
-        save_button.clicked.connect(self.save_settings)
+        self.save_button = QPushButton("Lagre")
+        self.cancel_button = QPushButton("Avbryt")
 
-        cancel_button = QPushButton("Avbryt")
-        cancel_button.setStyleSheet(styles.BUTTON_STYLE)
-        cancel_button.clicked.connect(self.cancel_settings)
+        self.main_window.theme_changed.connect(self.init_ui_settings)
+        self.init_ui_settings()
 
-        buttons_layout.addWidget(save_button)
-        buttons_layout.addWidget(cancel_button)
+        self.save_button.clicked.connect(self.save_settings)
+        self.cancel_button.clicked.connect(self.cancel_settings)
+
+        buttons_layout.addWidget(self.save_button)
+        buttons_layout.addWidget(self.cancel_button)
         buttons_layout.addStretch()
 
         # Legg til knappene i hovedlayouten
@@ -91,13 +81,18 @@ class SettingsWidget(QWidget):
 
         self.setLayout(main_layout)
 
-        # Lagre referanser til widgets for senere bruk
-        self.theme_combo = theme_combo
-        self.font_size_spin = font_size_spin
+    def init_ui_settings(self):
+        self.main_window.style_manager.apply_label_style(self.theme_label)
+        self.main_window.style_manager.apply_label_style(self.font_size_label)
+        self.main_window.style_manager.apply_line_edit_style(self.theme_combo)
+        self.main_window.style_manager.apply_line_edit_style(self.font_size_spin)
+        self.main_window.style_manager.apply_button_style_1(self.save_button)
+        self.main_window.style_manager.apply_button_style_2(self.cancel_button)
 
     def save_settings(self):
         theme = self.theme_combo.currentText()
         font_size = self.font_size_spin.value()
+        self.init_ui_settings()
         self.settings_changed.emit((theme, font_size))
 
     def cancel_settings(self):

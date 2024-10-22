@@ -12,7 +12,6 @@ from PySide2.QtWidgets import (
 )
 from PySide2.QtCore import Qt, Signal
 
-import styles
 from data.encryption import decrypt_password
 from data.database import get_engine, create_tables, get_session
 from data.models import PasswordEntry
@@ -23,16 +22,13 @@ from sqlalchemy.exc import SQLAlchemyError
 class BackupWidget(QWidget):
     sync_completed = Signal(int)
 
-    def __init__(self, user, db_path, encryption_key, session, parent=None):
+    def __init__(self, main_window, parent=None):
         super().__init__(parent)
 
-        self.user = user
-        self.db_path = db_path
-        self.encryption_key = encryption_key
-        self.session = session
+        self.main_window = main_window
 
         # Sjekk at encryption_key er gyldig
-        if not self.encryption_key:
+        if not self.main_window.key:
             QMessageBox.critical(
                 self,
                 "Feil",
@@ -42,16 +38,16 @@ class BackupWidget(QWidget):
             self.close()
             return
 
-        self.setStyleSheet("background-color: #fcd4a0;")
         self.setWindowTitle("Sikkerhetskopiering")
 
         # Opprett knapper
         self.create_backup_button = QPushButton("Sikkerhetskopier passord")
         self.synchronize_backup_button = QPushButton("Synkroniser database med backup")
-        self.create_backup_button.setStyleSheet(styles.BUTTON_STYLE)
-        self.synchronize_backup_button.setStyleSheet(styles.BUTTON_STYLE)
         self.create_backup_button.clicked.connect(self.backup_database)
         self.synchronize_backup_button.clicked.connect(self.synchronize_backup)
+
+        self.main_window.theme_changed.connect(self.init_ui_backup)
+        self.init_ui_backup()
 
         # Sett opp layout
         layout = QVBoxLayout()
@@ -61,6 +57,12 @@ class BackupWidget(QWidget):
         layout.addStretch()
 
         self.setLayout(layout)
+
+    def init_ui_backup(self):
+        self.main_window.style_manager.apply_button_style_1(self.create_backup_button)
+        self.main_window.style_manager.apply_button_style_1(
+            self.synchronize_backup_button
+        )
 
     def backup_database(self):
         # Åpne en dialog for å velge backup mappe
@@ -73,11 +75,11 @@ class BackupWidget(QWidget):
         if backup_dir:
             try:
                 # Sjekk om databasefilen eksisterer
-                if not os.path.exists(self.db_path):
+                if not os.path.exists(self.main_window.db_path):
                     QMessageBox.warning(
                         self,
                         "Fil Ikke Funnet",
-                        f"Databasefilen ble ikke funnet:\n{self.db_path}",
+                        f"Databasefilen ble ikke funnet:\n{self.main_window.db_path}",
                         QMessageBox.Ok,
                     )
                     return
@@ -101,8 +103,8 @@ class BackupWidget(QWidget):
 
                 # Kopier kun brukerens passord til den midlertidige databasen
                 user_passwords = (
-                    self.session.query(PasswordEntry)
-                    .filter_by(user_id=self.user.id)
+                    self.main_window.session.query(PasswordEntry)
+                    .filter_by(user_id=self.main_window.user.id)
                     .all()
                 )
                 for entry in user_passwords:
@@ -190,22 +192,22 @@ class BackupWidget(QWidget):
 
                 # Hent alle passordoppføringer fra current db
                 current_passwords = (
-                    self.session.query(PasswordEntry)
-                    .filter_by(user_id=self.user.id)
+                    self.main_window.session.query(PasswordEntry)
+                    .filter_by(user_id=self.main_window.user.id)
                     .all()
                 )
                 print(
-                    f"Hentet alle passordoppføringer fra brukeren med id: {self.user.id}"
+                    f"Hentet alle passordoppføringer fra brukeren med id: {self.main_window.user.id}"
                 )
 
                 # Lag en sett av unike identifikatorer for nåværende passord
                 current_identifiers = set(
                     (
-                        decrypt_password(p.service, self.encryption_key["service"]),
-                        decrypt_password(p.email, self.encryption_key["email"]),
-                        decrypt_password(p.username, self.encryption_key["username"]),
-                        decrypt_password(p.link, self.encryption_key["link"]),
-                        decrypt_password(p.tag, self.encryption_key["tag"]),
+                        decrypt_password(p.service, self.main_window.key["service"]),
+                        decrypt_password(p.email, self.main_window.key["email"]),
+                        decrypt_password(p.username, self.main_window.key["username"]),
+                        decrypt_password(p.link, self.main_window.key["link"]),
+                        decrypt_password(p.tag, self.main_window.key["tag"]),
                     )
                     for p in current_passwords
                 )
@@ -219,14 +221,16 @@ class BackupWidget(QWidget):
                     try:
                         identifier = (
                             decrypt_password(
-                                entry.service, self.encryption_key["service"]
+                                entry.service, self.main_window.key["service"]
                             ),
-                            decrypt_password(entry.email, self.encryption_key["email"]),
                             decrypt_password(
-                                entry.username, self.encryption_key["username"]
+                                entry.email, self.main_window.key["email"]
                             ),
-                            decrypt_password(entry.link, self.encryption_key["link"]),
-                            decrypt_password(entry.tag, self.encryption_key["tag"]),
+                            decrypt_password(
+                                entry.username, self.main_window.key["username"]
+                            ),
+                            decrypt_password(entry.link, self.main_window.key["link"]),
+                            decrypt_password(entry.tag, self.main_window.key["tag"]),
                         )
                         print(f"Identifier successfully decrypted: {identifier}")
                         if identifier not in current_identifiers:
@@ -257,20 +261,28 @@ class BackupWidget(QWidget):
                             encrypted_password=entry.encrypted_password,
                             link=entry.link,
                             tag=entry.tag,
-                            user_id=self.user.id,
+                            user_id=self.main_window.user.id,
                         )
-                        self.session.add(new_entry)
-                        self.session.flush()
+                        self.main_window.session.add(new_entry)
+                        self.main_window.session.flush()
                         print(f"Entry added and flushed: {new_entry}")
                     except Exception as e:
                         print(f"Error adding entry {entry.service}: {str(e)}")
                         traceback.print_exc()
 
                 try:
-                    self.session.commit()
-                    print(f"Successfully committed {len(new_entries)} entries.")
+                    if len(new_entries) == 1:
+                        message = "1 nytt passord har blitt lagt til."
+                    else:
+                        message = f"{len(new_entries)} nye passord har blitt lagt til."
+                    QMessageBox.information(
+                        self,
+                        "Passord synkronisert!",
+                        message,
+                        QMessageBox.Ok,
+                    )
+                    self.main_window.session.commit()
                 except SQLAlchemyError as e:
-                    print(f"SQLAlchemyError during commit: {str(e)}")
                     traceback.print_exc()
                     QMessageBox.critical(
                         self,
@@ -280,7 +292,6 @@ class BackupWidget(QWidget):
                     )
                     return
                 except Exception as e:
-                    print(f"Unexpected error during commit: {str(e)}")
                     traceback.print_exc()
                     QMessageBox.critical(
                         self,
@@ -291,7 +302,6 @@ class BackupWidget(QWidget):
                     return
 
             except SQLAlchemyError as e:
-                print(f"SQLAlchemyError while synchronizing: {str(e)}")
                 traceback.print_exc()
                 QMessageBox.critical(
                     self,
@@ -300,7 +310,6 @@ class BackupWidget(QWidget):
                     QMessageBox.Ok,
                 )
             except Exception as e:
-                print(f"Uventet feil: {str(e)}")
                 traceback.print_exc()
                 QMessageBox.critical(
                     self,
@@ -312,7 +321,5 @@ class BackupWidget(QWidget):
                 try:
                     backup_session.close()
                     backup_engine.dispose()
-                    print("Backup session closed and engine disposed.")
                 except Exception as e:
-                    print(f"Error during cleanup: {str(e)}")
                     traceback.print_exc()

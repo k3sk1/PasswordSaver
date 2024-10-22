@@ -12,7 +12,6 @@ from PySide2.QtWidgets import (
     QHBoxLayout,
 )
 from PySide2.QtCore import Qt, Signal
-import styles
 from data.encryption import encrypt_password
 from data.models import PasswordEntry
 
@@ -30,37 +29,29 @@ class AddPasswordWidget(QWidget):
         self.main_window = main_window
         self.entry_id = None
 
-        self.setStyleSheet("background-color: #ffad8d;")
         self.setWindowTitle("Legg til passord")
 
         # Opprett etiketter og inngangsfelt
-        self.email_label = QLabel("E-mail brukt:")
-        self.email_label.setStyleSheet(styles.LABEL_STYLE)
+        self.email_label = QLabel("E-mail")
         self.email_input = QLineEdit()
-        self.email_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.email_input.setTextMargins(5, 0, 0, 0)
-        self.email_input.setPlaceholderText("eksempel@domene.com")
+        self.email_input.setPlaceholderText("ola_nordmann@gmail.com")
 
-        self.username_label = QLabel("Brukernavn (valgfri):")
-        self.username_label.setStyleSheet(styles.LABEL_STYLE)
+        self.username_label = QLabel("Brukernavn (valgfri)")
         self.username_input = QLineEdit()
-        self.username_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.username_input.setTextMargins(5, 0, 0, 0)
-        self.username_input.setPlaceholderText("Ditt brukernavn")
+        self.username_input.setPlaceholderText("Brukernavn")
 
-        self.password_label = QLabel("Passord:")
-        self.password_label.setStyleSheet(styles.LABEL_STYLE)
+        self.password_label = QLabel("Passord")
         self.password_input = QLineEdit()
-        self.password_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setTextMargins(5, 0, 0, 0)
-        self.password_input.setPlaceholderText("Ditt passord")
+        self.password_input.setPlaceholderText("Passord")
 
         # Vis/skjul passord knapp
         self.toggle_password_button = QToolButton()
         self.toggle_password_button.setText("\U0001F576")  # solbrille symbol
         self.toggle_password_button.setCheckable(True)
-        self.toggle_password_button.setStyleSheet(styles.BUTTON_STYLE_CIRCLE)
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
 
         # Juster høyden til vis/skjul passord knappen dynamisk etter passord input feltet
@@ -73,32 +64,26 @@ class AddPasswordWidget(QWidget):
         password_layout.addWidget(self.password_input)
         password_layout.addWidget(self.toggle_password_button)
 
-        self.service_label = QLabel("Tjeneste:")
-        self.service_label.setStyleSheet(styles.LABEL_STYLE)
+        self.service_label = QLabel("Tjeneste")
         self.service_input = QLineEdit()
-        self.service_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.service_input.setTextMargins(5, 0, 0, 0)
         self.service_input.setPlaceholderText("Google")
 
-        self.link_label = QLabel("Link til nettside:")
-        self.link_label.setStyleSheet(styles.LABEL_STYLE)
+        self.link_label = QLabel("Link til nettside")
         self.link_input = QLineEdit()
-        self.link_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.link_input.setTextMargins(5, 0, 0, 0)
-        self.link_input.setPlaceholderText("https://www.eksempel.com")
+        self.link_input.setPlaceholderText(
+            "https://www.eksempel.com eller www.eksempel.com "
+        )
 
-        self.tag_label = QLabel("Emneknagg (valgfri):")
-        self.tag_label.setStyleSheet(styles.LABEL_STYLE)
+        self.tag_label = QLabel("Emneknagg (valgfri)")
         self.tag_input = QLineEdit()
-        self.tag_input.setStyleSheet(styles.LINE_EDIT_STYLE)
         self.tag_input.setTextMargins(5, 0, 0, 0)
         self.tag_input.setPlaceholderText("Arbeid")
 
         # buttons
         self.save_button = QPushButton("Lagre")
         self.generate_passw_button = QPushButton("Lag passord")
-        self.save_button.setStyleSheet(styles.BUTTON_STYLE)
-        self.generate_passw_button.setStyleSheet(styles.BUTTON_STYLE)
         self.save_button.setFixedWidth(150)
         self.save_button.clicked.connect(self.save_password)
         self.generate_passw_button.clicked.connect(self.generate_password)
@@ -111,6 +96,10 @@ class AddPasswordWidget(QWidget):
         self.medium_strength_button.setCheckable(True)
         self.high_strength_button.setCheckable(True)
         self.medium_strength_button.setChecked(True)  # Medium er standard
+
+        self.main_window.theme_changed.connect(self.init_ui_add_pw)
+
+        self.init_ui_add_pw()
 
         # Gruppér styrkeknappene
         self.strength_group = QButtonGroup()
@@ -150,6 +139,35 @@ class AddPasswordWidget(QWidget):
         main_layout.addWidget(self.save_button, alignment=Qt.AlignCenter)
 
         self.setLayout(main_layout)
+
+    def init_ui_add_pw(self):
+        # Bruk style_manager til å sette stiler på widgets
+        self.main_window.style_manager.apply_label_style(self.email_label)
+        self.main_window.style_manager.apply_label_style(self.username_label)
+        self.main_window.style_manager.apply_label_style(self.password_label)
+        self.main_window.style_manager.apply_label_style(self.service_label)
+        self.main_window.style_manager.apply_label_style(self.link_label)
+        self.main_window.style_manager.apply_label_style(self.tag_label)
+        self.main_window.style_manager.apply_button_style_1(self.generate_passw_button)
+        self.main_window.style_manager.apply_button_style_1(self.save_button)
+        self.main_window.style_manager.apply_button_style_circle(
+            self.toggle_password_button
+        )
+        self.main_window.style_manager.apply_line_edit_style(self.email_input)
+        self.main_window.style_manager.apply_line_edit_style(self.username_input)
+        self.main_window.style_manager.apply_line_edit_style(self.password_input)
+        self.main_window.style_manager.apply_line_edit_style(self.service_input)
+        self.main_window.style_manager.apply_line_edit_style(self.link_input)
+        self.main_window.style_manager.apply_line_edit_style(self.tag_input)
+        self.main_window.style_manager.apply_button_style_strength_1(
+            self.low_strength_button
+        )
+        self.main_window.style_manager.apply_button_style_strength_2(
+            self.medium_strength_button
+        )
+        self.main_window.style_manager.apply_button_style_strength_3(
+            self.high_strength_button
+        )
 
     def save_password(self):
         print(f"user: {self.user}")
