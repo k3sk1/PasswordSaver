@@ -175,7 +175,14 @@ class LoginWidget(QWidget):
                 self.switch_mode()  # Bytt tilbake til innloggingsmodus
                 self.username_input.setText(username)
                 self.password_input.setFocus()
-                self.clear_inputs()
+                # Set the username back after switching modes
+                self.username_input.setText(username)
+                self.password_input.setFocus()
+                # Only clear the password and confirm password fields, not the username
+                self.password_input.clear()
+                self.confirm_password_input.clear()
+                # Oppdater "Bytt Bruker"-menyen
+                self.populate_user_menu()
             else:
                 QMessageBox.critical(
                     self, "Feil", "Kunne ikke opprette bruker. Prøv igjen."
@@ -189,15 +196,23 @@ class LoginWidget(QWidget):
             )
             return False
 
-        if self.mode == "register" and not confirm_password:
-            QMessageBox.warning(
-                self, "Feil", "Vennligst fyll ut alle obligatoriske felt."
-            )
-            return False
+        if self.mode == "register":
+            # Passordlengdesjekk kun i registreringsmodus
+            if len(password) < 4:
+                QMessageBox.warning(
+                    self, "Feil", "Passordet må være minst 4 tegn langt."
+                )
+                return False
 
-        if self.mode == "register" and password != confirm_password:
-            QMessageBox.warning(self, "Feil", "Passordene stemmer ikke overens.")
-            return False
+            if not confirm_password:
+                QMessageBox.warning(
+                    self, "Feil", "Vennligst fyll ut alle obligatoriske felt."
+                )
+                return False
+
+            if password != confirm_password:
+                QMessageBox.warning(self, "Feil", "Passordene stemmer ikke overens.")
+                return False
 
         return True
 

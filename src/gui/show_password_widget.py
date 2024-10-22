@@ -229,71 +229,46 @@ class ShowPasswordWidget(QWidget):
 
     def view_password(self, row, column):
         try:
-            # Hent teksten fra cellen som er valgt ved dobbeltklikk
-            cell_text = self.table.item(row, column).text()
+            # Hvis brukeren dobbeltklikker på passord-kolonnen (kolonne 3)
+            if column == 3:
+                service_item = self.table.item(row, 0)
+                entry_id = service_item.data(Qt.UserRole)
+                entry = self.session.query(PasswordEntry).filter_by(id=entry_id).first()
 
-            # Kopier cellens tekst til utklippstavlen
-            QApplication.clipboard().setText(cell_text)
-            copied_text = QApplication.clipboard().text()
+                if entry:
+                    # Dekrypter passordet
+                    decrypted_password = decrypt_password(
+                        entry.encrypted_password, self.key["password"]
+                    )
 
-            # Vis en melding om at tekst er kopiert
-            QMessageBox.information(
-                self,
-                "Kopiert",
-                f"Teksten '{copied_text}' er kopiert til utklippstavlen.",
-            )
+                    # Kopier det dekrypterte passordet til utklippstavlen
+                    QApplication.clipboard().setText(decrypted_password)
+                    copied_text = QApplication.clipboard().text()
+
+                    # Vis en melding om at passordet er kopiert
+                    QMessageBox.information(
+                        self,
+                        "Kopiert",
+                        f"Passordet er kopiert til utklippstavlen.",
+                    )
+                else:
+                    QMessageBox.warning(
+                        self, "Feil", "Passordet ble ikke funnet i databasen."
+                    )
+            else:
+                # For alle andre kolonner, kopier innholdet som det er
+                cell_text = self.table.item(row, column).text()
+                QApplication.clipboard().setText(cell_text)
+                copied_text = QApplication.clipboard().text()
+
+                # Vis en melding om at tekst er kopiert
+                QMessageBox.information(
+                    self,
+                    "Kopiert",
+                    f"Teksten '{copied_text}' er kopiert til utklippstavlen.",
+                )
         except Exception as e:
             QMessageBox.critical(self, "Feil", f"Kunne ikke kopiere tekst: {str(e)}")
-
-    # def view_password(self, row, column):
-    #     print("test")
-    #     try:
-    #         print("test")
-    #         # Hent PasswordEntry fra databasen basert på row og user_id
-    #         service = self.table.item(row, 0).text()
-    #         email = self.table.item(row, 1).text()
-    #         username = self.table.item(row, 2).text()
-    #         link = self.table.item(row, 4).text()
-    #         tag = self.table.item(row, 5).text()
-
-    #         entry = (
-    #             self.session.query(PasswordEntry)
-    #             .filter_by(
-    #                 service=service,
-    #                 email=email,
-    #                 username=username,
-    #                 link=link,
-    #                 tag=tag,
-    #                 user_id=self.user.id,  # Sikre at det tilhører riktig bruker
-    #             )
-    #             .first()
-    #         )
-
-    #         if entry:
-    #             decrypted_service = decrypt_password(entry.service, self.key["service"])
-    #             decrypted_email = decrypt_password(entry.email, self.key["email"])
-    #             decrypted_username = decrypt_password(
-    #                 entry.username, self.key["username"]
-    #             )
-    #             decrypted_password = decrypt_password(
-    #                 entry.encrypted_password, self.key["password"]
-    #             )
-    #             decrypted_link = decrypt_password(entry.link, self.key["link"])
-    #             decrypted_tag = decrypt_password(entry.tag, self.key["tag"])
-
-    #             QMessageBox.information(
-    #                 self,
-    #                 "Passord Detaljer",
-    #                 f"Tjeneste: {decrypted_service}\n"
-    #                 f"E-post: {decrypted_email}\n"
-    #                 f"Brukernavn: {decrypted_username}\n"
-    #                 f"Passord: {decrypted_password}\n"
-    #                 f"Link: {decrypted_link}\n"
-    #                 f"Tag: {decrypted_tag}",
-    #                 QMessageBox.Ok,
-    #             )
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Feil", f"Kunne ikke vise passord: {str(e)}")
 
     def copy_password(self):
         selected_items = self.table.selectedItems()

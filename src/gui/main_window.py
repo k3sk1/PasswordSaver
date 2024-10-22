@@ -133,11 +133,11 @@ class MainWindow(QMainWindow):
                 .count()
             )
             if password_count > 0:
-                self.view_password_button.setEnabled(True)
-                self.backup_button.setEnabled(True)
+                self.view_password_button.setVisible(True)
+                self.backup_button.setVisible(True)
             else:
-                self.view_password_button.setEnabled(False)
-                self.backup_button.setEnabled(False)
+                self.view_password_button.setVisible(False)
+                self.backup_button.setVisible(False)
         except Exception as e:
             QMessageBox.critical(
                 self,
