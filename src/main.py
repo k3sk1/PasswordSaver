@@ -12,9 +12,14 @@ def main():
     # Sett global font
     app.setFont(styles.GLOBAL_FONT)
 
-    # Få den absolutte stien til 'data' mappen
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(current_dir, "data")
+    # Get a writable directory for the database (e.g., user's home directory)
+    user_home_dir = os.path.expanduser("~")
+    data_dir = os.path.join(
+        user_home_dir, "PassordSkapData"
+    )  # Create a folder for app data
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)  # Create the directory if it doesn't exist
+
     db_path = os.path.join(data_dir, "passwords.db")
 
     # Initialiser LoginManager
