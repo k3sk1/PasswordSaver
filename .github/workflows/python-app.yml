@@ -18,7 +18,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install --index-url=https://download.qt.io/official_releases/QtForPython/pyside2/5.15.2 PySide2
+        if (Test-Path "requirements.txt") { pip install -r requirements.txt }
     - name: Build Windows executable
       run: |
         cd src
@@ -40,7 +41,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install --index-url=https://download.qt.io/official_releases/QtForPython/pyside2/5.15.2 PySide2
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Build macOS executable
       run: |
         cd src
@@ -50,5 +52,4 @@ jobs:
       with:
         name: macos-executable
         path: src/dist/main
-
 
