@@ -12,7 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4 # Updated to v4
       with:
         python-version: "3.10"
     - name: Install dependencies
@@ -26,7 +26,7 @@ jobs:
         cd src
         pyinstaller --onefile --windowed main.py
     - name: Upload Windows artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4 # Updated to v4
       with:
         name: windows-executable
         path: src/dist/main.exe
@@ -36,7 +36,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4 # Updated to v4
       with:
         python-version: "3.10"
     - name: Install dependencies
@@ -50,8 +50,7 @@ jobs:
         cd src
         pyinstaller --onefile --windowed main.py
     - name: Upload macOS artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4 # Updated to v4
       with:
         name: macos-executable
         path: src/dist/main
-
