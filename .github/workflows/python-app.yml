@@ -30,27 +30,3 @@ jobs:
       with:
         name: windows-executable
         path: src/dist/main.exe
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4 # Updated to v4
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller  # Install PyInstaller
-        pip install --index-url=https://download.qt.io/official_releases/QtForPython/pyside2 PySide2
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Build macOS executable
-      run: |
-        cd src
-        pyinstaller --onefile --windowed main.py
-    - name: Upload macOS artifact
-      uses: actions/upload-artifact@v4 # Updated to v4
-      with:
-        name: macos-executable
-        path: src/dist/main
