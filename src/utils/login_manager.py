@@ -18,10 +18,8 @@ class LoginManager:
         """
         Authenticate user and return (user, derived_key) if successful, else (None, None)
         """
-        print("Authenticating user:", username)
         user = self.session.query(User).filter_by(username=username).first()
         if not user:
-            print("User does not exist.")
             return (None, None, "Bruker eksisterer ikke.")
 
         # Check if user is locked out
@@ -30,16 +28,12 @@ class LoginManager:
             lockout_remaining = user.lockout_until - current_time
             minutes, seconds = divmod(lockout_remaining.total_seconds(), 60)
             message = f"Brukeren er låst ute i {int(minutes)} minutter og {int(seconds)} sekunder."
-            print(f"User is locked out until {user.lockout_until}.")
             return (None, None, message)
 
         try:
             salt = base64.b64decode(user.salt)
             computed_hash = hash_password(password, salt)
-            print("Stored hash:", repr(user.password_hash))
-            print("Computed hash:", repr(computed_hash))
             if computed_hash == user.password_hash:
-                print("Authentication successful.")
                 # Utlede nøkler for hver kolonne som trenger kryptering
                 derived_keys = {
                     "service": derive_key_for_column(password, salt, "service"),
@@ -55,7 +49,6 @@ class LoginManager:
                 self.session.commit()
                 return (user, derived_keys, None)
             else:
-                print("Invalid password.")
                 user.failed_attempts += 1
                 user.last_failed_attempt = current_time
 
@@ -65,21 +58,15 @@ class LoginManager:
                         minutes=5 * user.failed_attempts
                     )
                     user.lockout_until = current_time + lockout_duration
-                    print(
-                        f"User is locked out until {user.lockout_until} due to multiple failed attempts."
-                    )
 
                 self.session.commit()
                 return (None, None, "Ugyldig passord.")
         except Exception as e:
-            print("Error during authentication:", e)
             return (None, None, "En feil oppstod under autentisering.")
 
     def register_user(self, username: str, password: str) -> bool:
-        print("Registering user:", username)
         existing_user = self.session.query(User).filter_by(username=username).first()
         if existing_user:
-            print("Username already taken.")
             return False
 
         try:
@@ -97,11 +84,9 @@ class LoginManager:
 
             self.session.add(new_user)
             self.session.commit()
-            print("New user registered successfully.")
             return True
         except Exception as e:
             self.session.rollback()
-            print("Error during user registration:", e)
             return False
 
     def get_all_users(self):
@@ -112,5 +97,4 @@ class LoginManager:
             users = self.session.query(User.username).all()
             return [user.username for user in users]
         except Exception as e:
-            print("Error retrieving users:", e)
             return []

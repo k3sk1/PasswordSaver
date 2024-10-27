@@ -161,7 +161,6 @@ class BackupWidget(QWidget):
             try:
                 # les inn kryptert tabell uten å dekryptere
                 shutil.copy2(backup_file, decrypted_backup_path)
-                print(f"Kopiert backup-fil til {decrypted_backup_path}")
             except Exception as e:
                 QMessageBox.critical(
                     self,
@@ -175,11 +174,9 @@ class BackupWidget(QWidget):
                 # Sett opp engine og session for backup databasen
                 backup_engine = get_engine(decrypted_backup_path)
                 backup_session = get_session(backup_engine)
-                print("Backup engine og session er satt opp.")
 
                 # Hent alle passordoppføringer fra backup
                 backup_passwords = backup_session.query(PasswordEntry).all()
-                print("Hentet alle passordoppføringer fra backup.")
                 if not backup_passwords:
                     QMessageBox.information(
                         self,
@@ -195,9 +192,6 @@ class BackupWidget(QWidget):
                     .filter_by(user_id=self.main_window.user.id)
                     .all()
                 )
-                print(
-                    f"Hentet alle passordoppføringer fra brukeren med id: {self.main_window.user.id}"
-                )
 
                 # Lag en sett av unike identifikatorer for nåværende passord
                 current_identifiers = set(
@@ -209,9 +203,6 @@ class BackupWidget(QWidget):
                         decrypt_password(p.tag, self.main_window.key["tag"]),
                     )
                     for p in current_passwords
-                )
-                print(
-                    "Opprettet sett av unike identifikatorer for eksisterende passord."
                 )
 
                 # Legg til passord fra backup som ikke finnes i nåværende database
@@ -231,11 +222,9 @@ class BackupWidget(QWidget):
                             decrypt_password(entry.link, self.main_window.key["link"]),
                             decrypt_password(entry.tag, self.main_window.key["tag"]),
                         )
-                        print(f"Identifier successfully decrypted: {identifier}")
                         if identifier not in current_identifiers:
                             new_entries.append(entry)
                     except Exception as e:
-                        print(f"Error decrypting entry {entry.service}: {str(e)}")
                         traceback.print_exc()
 
                 if not new_entries:
@@ -250,9 +239,6 @@ class BackupWidget(QWidget):
                 # Legg til de nye passordene i den nåværende databasen
                 for entry in new_entries:
                     try:
-                        print(
-                            f"Adding entry: {entry.service}, {entry.email}, {entry.username}, {entry.link}, {entry.tag}"
-                        )
                         new_entry = PasswordEntry(
                             service=entry.service,
                             email=entry.email,
@@ -264,9 +250,7 @@ class BackupWidget(QWidget):
                         )
                         self.main_window.session.add(new_entry)
                         self.main_window.session.flush()
-                        print(f"Entry added and flushed: {new_entry}")
                     except Exception as e:
-                        print(f"Error adding entry {entry.service}: {str(e)}")
                         traceback.print_exc()
 
                 try:

@@ -35,10 +35,8 @@ def encrypt_password(password: str, key: bytes) -> str:
     try:
         f = Fernet(key)
         encrypted = f.encrypt(password.encode()).decode()
-        print(f"Encrypted data using key: {key}")
         return encrypted
     except Exception as e:
-        print(f"Error encrypting entry {password}: {e}")
         raise e
 
 
@@ -47,8 +45,6 @@ def decrypt_password(encrypted_password: str, key: bytes) -> str:
     try:
         f = Fernet(key)
         decrypted = f.decrypt(encrypted_password.encode()).decode()
-        print(f"Decrypted data using key: {key}")
         return decrypted
     except Exception as e:
-        print(f"Error decrypting entry {encrypted_password}: {e}")
         raise e

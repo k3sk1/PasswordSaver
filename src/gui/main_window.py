@@ -195,9 +195,6 @@ class MainWindow(QMainWindow):
             "theme": self.user.settings.theme if self.user.settings else "default",
             "font_size": self.user.settings.font_size if self.user.settings else 16,
         }
-        print(
-            f"Laster inn tema: {settings['theme']} med font størrelse: {settings['font_size']}"
-        )
         return settings
 
     def apply_settings(self):
@@ -211,7 +208,6 @@ class MainWindow(QMainWindow):
             settings["theme"] != current_theme
             or settings["font_size"] != current_font_size
         ):
-            print("Oppdaterer tema og stil...")
             self.apply_theme(settings["theme"])
             self.apply_font_size(settings["font_size"])
 
@@ -258,7 +254,6 @@ class MainWindow(QMainWindow):
         # Her bruker du login_manager for å autentisere brukeren
         user, key, message = self.login_manager.authenticate_user(username, password)
         if user:
-            print("Login successful, switching to main view.")
             # Sett `user` og `key` etter vellykket login
             self.user = user
             self.key = key
@@ -312,7 +307,6 @@ class MainWindow(QMainWindow):
             self.stack.setCurrentWidget(self.placeholder_widget)
         else:
             QMessageBox.critical(self, "Feil", message, QMessageBox.Ok)
-            print("Authentication failed.")
 
     def init_ui(self):
         # Apply updated styles

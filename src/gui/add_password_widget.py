@@ -171,9 +171,6 @@ class AddPasswordWidget(QWidget):
         )
 
     def save_password(self):
-        print(f"user: {self.user}")
-        print(f"salt: {self.user.salt}")
-        print(f"key: {self.key}")
         # Hent data fra feltene
         data = self.get_data()
 
@@ -304,8 +301,6 @@ class AddPasswordWidget(QWidget):
 
         # Skriv passordet inn i passordfeltet automatisk
         self.password_input.setText(passord)
-
-        print("Generert passord:", passord)
 
     def get_data(self):
         return {

@@ -158,8 +158,6 @@ class LoginWidget(QWidget):
         password = self.password_input.text()
         confirm_password = self.confirm_password_input.text()
 
-        print("Attempting to login/register with:", username, password)
-
         if not self.validate_inputs(username, password, confirm_password):
             return
 

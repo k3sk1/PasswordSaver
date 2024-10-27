@@ -10,7 +10,7 @@ from styles import (
     TABLE_STYLE,
 )
 
-from PySide2.QtWidgets import QComboBox, QSpinBox  # For å sjekke widget type
+from PySide2.QtWidgets import QComboBox, QSpinBox
 
 
 class StyleManager:

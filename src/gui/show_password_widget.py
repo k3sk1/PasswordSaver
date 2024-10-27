@@ -275,26 +275,20 @@ class ShowPasswordWidget(QWidget):
         entry_id = service_item.data(Qt.UserRole)
         try:
             entry = self.session.query(PasswordEntry).filter_by(id=entry_id).first()
-            print(f"entry: {entry}")
             if entry:
                 decrypted_password = decrypt_password(
                     entry.encrypted_password, self.key["password"]
                 )
-                # Debugging: Se om vi får det dekrypterte passordet
-                print("Decrypted password:", decrypted_password)
                 QApplication.clipboard().setText(decrypted_password)
                 copied_text = QApplication.clipboard().text()
-                print("Copied to clipboard:", copied_text)
                 QMessageBox.information(
                     self, "Kopiert", "Passordet er kopiert til utklippstavlen."
                 )
         except Exception as e:
-            print("Entry not found in the database.")
             QMessageBox.critical(self, "Feil", f"Kunne ikke kopiere passord: {str(e)}")
 
     def delete_row(self):
         selected_items = self.table.selectedItems()
-        print(f"Selected items in delete_row: {selected_items}")
         if not selected_items:
             QMessageBox.warning(
                 self, "Ingen Valgt", "Vennligst velg et passord fra tabellen."
@@ -334,7 +328,6 @@ class ShowPasswordWidget(QWidget):
 
     def edit_row(self):
         selected_items = self.table.selectedItems()
-        print(f"Selected items in edit_row: {selected_items}")
         if not selected_items:
             QMessageBox.warning(
                 self, "Ingen Valgt", "Vennligst velg et passord fra tabellen."
@@ -345,8 +338,6 @@ class ShowPasswordWidget(QWidget):
         row = selected_items[0].row()
         service_item = self.table.item(row, 0)
         entry_id = service_item.data(Qt.UserRole)
-
-        print(f"Entry ID: {entry_id}")
 
         try:
             entry = self.session.query(PasswordEntry).filter_by(id=entry_id).first()
@@ -382,8 +373,6 @@ class ShowPasswordWidget(QWidget):
                 )
         except Exception as e:
             QMessageBox.critical(self, "Feil", f"Kunne ikke hente passordet: {str(e)}")
-
-    # Do nothing else for now, just verify selection works
 
     def go_to_web(self):
         selected_items = self.table.selectedItems()
