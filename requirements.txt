@@ -7,3 +7,4 @@ PySide2==5.15.2.1
 shiboken2==5.15.2.1
 SQLAlchemy==2.0.35
 typing_extensions==4.12.2
+pytest
