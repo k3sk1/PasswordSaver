@@ -2,13 +2,12 @@ import base64
 import datetime
 import os
 from data.encryption import derive_key_for_column, hash_password
+from data.database import get_engine, create_tables, get_session
 from data.models import User, Settings
 
 
 class LoginManager:
     def __init__(self, db_path):
-        from data.database import get_engine, create_tables, get_session
-
         self.db_path = db_path
         self.engine = get_engine(db_path)
         create_tables(self.engine)

@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
 
         # Kobler signaler
         self.login_widget.login_success.connect(self.handle_login)
+        self.logged_out.connect(self.login_widget.clear_sensitive_data)
 
         # Legg widgets til stacken
         self.stack.addWidget(self.login_widget)  # Indeks 0
@@ -244,69 +245,62 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.login_widget)
 
     def log_out_quit(self):
+        self.logged_out.emit()
         # Lukk applikasjonen helt
         QApplication.quit()
 
-    def handle_login(self, credentials):
-        username = credentials["username"]
-        password = credentials["password"]
+    def handle_login(self):
+        # Hent bruker og nøkkel fra login_widget
+        self.user = self.login_widget.user
+        self.key = self.login_widget.key
 
-        # Her bruker du login_manager for å autentisere brukeren
-        user, key, message = self.login_manager.authenticate_user(username, password)
-        if user:
-            # Sett `user` og `key` etter vellykket login
-            self.user = user
-            self.key = key
+        # Oppdater widgets som trenger nøkkelen
+        self.add_password_widget = AddPasswordWidget(
+            self.user, self.session, self.key, self
+        )
+        self.show_password_widget = ShowPasswordWidget(
+            self.session, self.key, self.user, self
+        )
+        self.backup_widget = BackupWidget(self)
+        self.settings_widget = SettingsWidget(
+            main_window=self,
+            current_theme=(
+                self.user.settings.theme if self.user.settings else "default"
+            ),
+            current_font_size=(
+                self.user.settings.font_size if self.user.settings else 16
+            ),
+        )
 
-            # Oppdater widgets som trenger nøkkelen
-            self.add_password_widget = AddPasswordWidget(
-                self.user, self.session, self.key, self
-            )
-            self.show_password_widget = ShowPasswordWidget(
-                self.session, self.key, self.user, self
-            )
-            self.backup_widget = BackupWidget(self)
-            self.settings_widget = SettingsWidget(
-                main_window=self,
-                current_theme=(
-                    self.user.settings.theme if self.user.settings else "default"
-                ),
-                current_font_size=(
-                    self.user.settings.font_size if self.user.settings else 16
-                ),
-            )
+        # Koble signalene fra de nye widgetene til de riktige funksjonene
+        self.add_password_widget.password_saved.connect(self.update_button_states)
+        self.backup_widget.sync_completed.connect(self.update_button_states)
+        self.show_password_widget.row_deleted.connect(self.update_button_states)
+        self.settings_widget.settings_changed.connect(self.apply_settings_and_save)
+        self.settings_widget.settings_cancelled.connect(
+            lambda: self.switch_to_widget(self.placeholder_widget)
+        )
 
-            # Koble signalene fra de nye widgetene til de riktige funksjonene
-            self.add_password_widget.password_saved.connect(self.update_button_states)
-            self.backup_widget.sync_completed.connect(self.update_button_states)
-            self.show_password_widget.row_deleted.connect(self.update_button_states)
-            self.settings_widget.settings_changed.connect(self.apply_settings_and_save)
-            self.settings_widget.settings_cancelled.connect(
-                lambda: self.switch_to_widget(self.placeholder_widget)
-            )
+        # Legg de oppdaterte widgets til stacken
+        self.stack.addWidget(self.add_password_widget)  # Indeks 2
+        self.stack.addWidget(self.show_password_widget)  # Indeks 3
+        self.stack.addWidget(self.backup_widget)  # Indeks 4
+        self.stack.addWidget(self.settings_widget)  # Indeks 5
 
-            # Legg de oppdaterte widgets til stacken
-            self.stack.addWidget(self.add_password_widget)  # Indeks 2
-            self.stack.addWidget(self.show_password_widget)  # Indeks 3
-            self.stack.addWidget(self.backup_widget)  # Indeks 4
-            self.stack.addWidget(self.settings_widget)  # Indeks 5
+        # Oppdater innstillingene etter at brukeren er logget inn
+        self.apply_settings()
 
-            # Oppdater innstillingene etter at brukeren er logget inn
-            self.apply_settings()
+        # Vis sidepanelet etter vellykket innlogging
+        self.side_panel.setVisible(True)
 
-            # Vis sidepanelet etter vellykket innlogging
-            self.side_panel.setVisible(True)
+        # Sjekk antall passord og oppdater knappene (initialiser status)
+        self.update_button_states()
 
-            # Sjekk antall passord og oppdater knappene (initialiser status)
-            self.update_button_states()
+        self.setMinimumSize(0, 0)
+        self.showMaximized()
 
-            self.setMinimumSize(0, 0)
-            self.showMaximized()
-
-            # Bytt til placeholder widget eller hovedvisningen etter login
-            self.stack.setCurrentWidget(self.placeholder_widget)
-        else:
-            QMessageBox.critical(self, "Feil", message, QMessageBox.Ok)
+        # Bytt til placeholder widget eller hovedvisningen etter login
+        self.stack.setCurrentWidget(self.placeholder_widget)
 
     def init_ui(self):
         # Apply updated styles

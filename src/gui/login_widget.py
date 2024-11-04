@@ -14,15 +14,16 @@ from utils.login_manager import LoginManager
 
 
 class LoginWidget(QWidget):
-    login_success = Signal(dict)
+    login_success = Signal()
 
     def __init__(self, db_path, style_manager, existing=True, parent=None):
         super().__init__(parent)
         self.db_path = db_path
         self.login_manager = LoginManager(db_path)
         self.style_manager = style_manager
-
         self.mode = "login" if existing else "register"
+        self.user = None
+        self.key = None
 
         # Create a button that will show the menu when clicked
         self.user_menu_button = QPushButton("Bytt Bruker")
@@ -162,11 +163,20 @@ class LoginWidget(QWidget):
             return
 
         if self.mode == "login":
-            # Vellykket innlogging
-            self.login_success.emit(
-                {"mode": self.mode, "username": username, "password": password}
+            # Autentiser brukeren her
+            user, key, message = self.login_manager.authenticate_user(
+                username, password
             )
-            self.clear_inputs()
+            if user:
+                # Lagre bruker og nøkkel som instansvariabler
+                self.user = user
+                self.key = key
+                # Emittere signal om vellykket innlogging uten sensitive data
+                self.login_success.emit()
+                # Tømmer inputfeltene
+                self.clear_inputs()
+            else:
+                QMessageBox.critical(self, "Feil", message, QMessageBox.Ok)
         else:  # Registreringsmodus
             if self.try_register_user(username, password):
                 QMessageBox.information(self, "Suksess", "Bruker opprettet!")
@@ -244,3 +254,7 @@ class LoginWidget(QWidget):
         self.username_input.setText(user)
         # Focus on the password field for easier login
         self.password_input.setFocus()
+
+    def clear_sensitive_data(self):
+        self.user = None
+        self.key = None
