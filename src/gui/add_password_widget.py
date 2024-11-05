@@ -338,10 +338,3 @@ class AddPasswordWidget(QWidget):
         else:
             self.password_input.setEchoMode(QLineEdit.Password)
             self.toggle_password_button.setText("\U0001F576")  # Lukket øye-symbol
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        # Oppdater høyden til vis/skjul passord knappen
-        self.toggle_password_button.setFixedSize(
-            self.password_input.height(), self.password_input.height()
-        )

@@ -3,11 +3,13 @@ from PySide2.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
-    QHBoxLayout,
     QMessageBox,
     QAction,
     QMenu,
+    QSizePolicy,
+    QGridLayout,
 )
 from PySide2.QtCore import Qt, Signal
 from utils.login_manager import LoginManager
@@ -57,12 +59,31 @@ class LoginWidget(QWidget):
         self.confirm_password_input.setPlaceholderText("Bekreft passord")
         self.confirm_password_input.setMinimumWidth(200)
 
+        self.username_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.username_input.setMaximumWidth(300)
+        self.password_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.password_input.setMaximumWidth(300)
+        self.confirm_password_input.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Fixed
+        )
+        self.confirm_password_input.setMaximumWidth(300)
+
+        # Vis/skjul passord knapp for passord_input
+        self.toggle_password_button = QToolButton()
+        self.toggle_password_button.setText("\U0001F576")  # Solbrille symbol
+        self.toggle_password_button.setCheckable(True)
+        self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
+
+        # Juster høyden til vis/skjul passord knappen dynamisk etter passord input feltet
+        self.toggle_password_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
         # Ok and Cancel buttons
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.on_ok)
 
-        self.cancel_button = QPushButton("Tøm felt")
-        self.cancel_button.clicked.connect(self.clear_inputs)
+        self.clear_fields_button = QPushButton("Tøm felt")
+        self.clear_fields_button.clicked.connect(self.clear_inputs)
+        self.clear_fields_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         # Switch mode button
         self.switch_mode_button = QPushButton(
@@ -70,53 +91,54 @@ class LoginWidget(QWidget):
         )
         self.switch_mode_button.clicked.connect(self.switch_mode)
 
-        # Button layout for ok and cancel buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(self.ok_button)
-        button_layout.addWidget(self.cancel_button)
-        button_layout.addStretch()
+        # Opprett grid layout
+        grid_layout = QGridLayout()
+        grid_layout.setVerticalSpacing(10)  # Juster avstanden mellom rader om nødvendig
 
-        # Layout for switch mode button
-        mode_switch_layout = QHBoxLayout()
-        mode_switch_layout.addStretch()
-        mode_switch_layout.addWidget(self.user_menu_button)
-        mode_switch_layout.addWidget(self.switch_mode_button)
-        mode_switch_layout.addStretch()
+        # Rad 0: Brukernavn input og "Tøm felt"-knapp
+        grid_layout.addWidget(self.username_input, 0, 0)
+        grid_layout.addWidget(self.clear_fields_button, 0, 1)
+
+        # Rad 1: Passord input og vis/skjul-knapp
+        grid_layout.addWidget(self.password_input, 1, 0)
+        grid_layout.addWidget(self.toggle_password_button, 1, 1)
+
+        # Hvis du har bekreft passord input i registreringsmodus
+        grid_layout.addWidget(self.confirm_password_input, 2, 0)
+
+        grid_layout.setColumnStretch(0, 1)  # Inputfeltene ekspanderer
+        grid_layout.setColumnStretch(1, 0)  # Knappene har fast bredde
 
         # Main layout
         main_layout = QVBoxLayout()
-        main_layout.setAlignment(Qt.AlignCenter)
+        # main_layout.setAlignment(Qt.AlignTop)
+        main_layout.setContentsMargins(50, 50, 50, 50)
+        main_layout.addStretch()
 
-        # Add username and password fields with padding
-        username_layout = QHBoxLayout()
-        username_layout.addStretch()
-        username_layout.addWidget(self.username_input)
-        username_layout.addStretch()
+        bottom_buttons_layout = QVBoxLayout()
+        bottom_buttons_layout.addWidget(self.ok_button, alignment=Qt.AlignHCenter)
+        bottom_buttons_layout.addWidget(
+            self.switch_mode_button, alignment=Qt.AlignHCenter
+        )
+        bottom_buttons_layout.addWidget(
+            self.user_menu_button, alignment=Qt.AlignHCenter
+        )
 
-        password_layout = QHBoxLayout()
-        password_layout.addStretch()
-        password_layout.addWidget(self.password_input)
-        password_layout.addStretch()
+        # Legg til tittel
+        main_layout.addWidget(self.log_in_title, alignment=Qt.AlignHCenter)
+        main_layout.addSpacing(50)
 
-        confirm_password_layout = QHBoxLayout()
-        confirm_password_layout.addStretch()
-        confirm_password_layout.addWidget(self.confirm_password_input)
-        confirm_password_layout.addStretch()
+        # Legg til grid layout
+        main_layout.addLayout(grid_layout)
+        main_layout.addSpacing(20)
 
-        # Add username, password, and confirm password fields
-        main_layout.addWidget(self.log_in_title)
-        main_layout.addLayout(username_layout)
-        main_layout.addLayout(password_layout)
-        main_layout.addLayout(confirm_password_layout)
+        # Legg til bottom layout
+        main_layout.addLayout(bottom_buttons_layout, alignment=Qt.AlignHCenter)
+        main_layout.addStretch()
 
         # Hide confirm password fields in login mode
         if self.mode == "login":
             self.confirm_password_input.hide()
-
-        # Add buttons
-        main_layout.addLayout(button_layout)
-        main_layout.addLayout(mode_switch_layout)
 
         self.setLayout(main_layout)
 
@@ -130,7 +152,8 @@ class LoginWidget(QWidget):
         self.style_manager.apply_button_style(self.user_menu_button)
         self.style_manager.apply_button_style_1(self.ok_button)
         self.style_manager.apply_button_style_1(self.switch_mode_button)
-        self.style_manager.apply_button_style_2(self.cancel_button)
+        self.style_manager.apply_button_style_2(self.clear_fields_button)
+        self.style_manager.apply_button_style_circle(self.toggle_password_button)
 
     def switch_mode(self):
         if self.mode == "login":
@@ -181,8 +204,6 @@ class LoginWidget(QWidget):
             if self.try_register_user(username, password):
                 QMessageBox.information(self, "Suksess", "Bruker opprettet!")
                 self.switch_mode()  # Bytt tilbake til innloggingsmodus
-                self.username_input.setText(username)
-                self.password_input.setFocus()
                 # Set the username back after switching modes
                 self.username_input.setText(username)
                 self.password_input.setFocus()
@@ -258,3 +279,12 @@ class LoginWidget(QWidget):
     def clear_sensitive_data(self):
         self.user = None
         self.key = None
+
+    def toggle_password_visibility(self):
+        """Vis eller skjul passordet basert på knappens tilstand."""
+        if self.toggle_password_button.isChecked():
+            self.password_input.setEchoMode(QLineEdit.Normal)
+            self.toggle_password_button.setText("\U0001F441")  # Åpent øye-symbol
+        else:
+            self.password_input.setEchoMode(QLineEdit.Password)
+            self.toggle_password_button.setText("\U0001F576")  # Solbrille-symbol
