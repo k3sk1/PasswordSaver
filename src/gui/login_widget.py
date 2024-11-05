@@ -59,13 +59,18 @@ class LoginWidget(QWidget):
         self.confirm_password_input.setPlaceholderText("Bekreft passord")
         self.confirm_password_input.setMinimumWidth(200)
 
-        self.username_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.username_input.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.username_input.setMinimumWidth(200)
         self.username_input.setMaximumWidth(300)
-        self.password_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        self.password_input.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.password_input.setMinimumWidth(200)
         self.password_input.setMaximumWidth(300)
+
         self.confirm_password_input.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Fixed
+            QSizePolicy.Preferred, QSizePolicy.Fixed
         )
+        self.confirm_password_input.setMinimumWidth(200)
         self.confirm_password_input.setMaximumWidth(300)
 
         # Vis/skjul passord knapp for passord_input
@@ -93,7 +98,7 @@ class LoginWidget(QWidget):
 
         # Opprett grid layout
         grid_layout = QGridLayout()
-        grid_layout.setVerticalSpacing(10)  # Juster avstanden mellom rader om nødvendig
+        grid_layout.setVerticalSpacing(10)  # Juster avstanden mellom rader
 
         # Rad 0: Brukernavn input og "Tøm felt"-knapp
         grid_layout.addWidget(self.username_input, 0, 0)
@@ -106,8 +111,10 @@ class LoginWidget(QWidget):
         # Hvis du har bekreft passord input i registreringsmodus
         grid_layout.addWidget(self.confirm_password_input, 2, 0)
 
-        grid_layout.setColumnStretch(0, 1)  # Inputfeltene ekspanderer
-        grid_layout.setColumnStretch(1, 0)  # Knappene har fast bredde
+        # Opprett grid_widget som beholder for grid_layout
+        grid_widget = QWidget()
+        grid_widget.setLayout(grid_layout)
+        grid_widget.setMaximumWidth(400)  # Sett ønsket maksimumsbredde
 
         # Main layout
         main_layout = QVBoxLayout()
@@ -128,8 +135,8 @@ class LoginWidget(QWidget):
         main_layout.addWidget(self.log_in_title, alignment=Qt.AlignHCenter)
         main_layout.addSpacing(50)
 
-        # Legg til grid layout
-        main_layout.addLayout(grid_layout)
+        # Legg til grid_widget
+        main_layout.addWidget(grid_widget, alignment=Qt.AlignCenter)
         main_layout.addSpacing(20)
 
         # Legg til bottom layout

@@ -3,6 +3,8 @@ import os
 import shutil
 import tempfile
 import traceback
+import csv
+
 from PySide2.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -42,8 +44,10 @@ class BackupWidget(QWidget):
         # Opprett knapper
         self.create_backup_button = QPushButton("Sikkerhetskopier passord")
         self.synchronize_backup_button = QPushButton("Synkroniser database med backup")
+        self.backup_csv_button = QPushButton("Backup i csv")
         self.create_backup_button.clicked.connect(self.backup_database)
         self.synchronize_backup_button.clicked.connect(self.synchronize_backup)
+        self.backup_csv_button.clicked.connect(self.backup_csv)
 
         self.main_window.theme_changed.connect(self.init_ui_backup)
         self.init_ui_backup()
@@ -53,6 +57,7 @@ class BackupWidget(QWidget):
         layout.addStretch()
         layout.addWidget(self.create_backup_button, alignment=Qt.AlignCenter)
         layout.addWidget(self.synchronize_backup_button, alignment=Qt.AlignCenter)
+        layout.addWidget(self.backup_csv_button, alignment=Qt.AlignCenter)
         layout.addStretch()
 
         self.setLayout(layout)
@@ -62,6 +67,7 @@ class BackupWidget(QWidget):
         self.main_window.style_manager.apply_button_style_1(
             self.synchronize_backup_button
         )
+        self.main_window.style_manager.apply_button_style_1(self.backup_csv_button)
 
     def backup_database(self):
         # Åpne en dialog for å velge backup mappe
@@ -306,3 +312,107 @@ class BackupWidget(QWidget):
                     backup_engine.dispose()
                 except Exception as e:
                     traceback.print_exc()
+
+    def backup_csv(self):
+        # Informer brukeren om risikoen ved å lagre passord i klartekst
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Question)
+        msg_box.setWindowTitle("Bekreft Backup")
+        msg_box.setText(
+            "Denne backupen vil lagre passordene dine i klartekst i en CSV-fil. Dette er kun ment for testing. Er du sikker på at du vil fortsette?"
+        )
+        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg_box.setDefaultButton(QMessageBox.No)
+
+        reply = msg_box.exec_()
+        if reply != QMessageBox.Yes:
+            return  # Brukeren avbrøt operasjonen
+
+        # Åpne en dialog for å velge hvor CSV-filen skal lagres
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Lagre backup som CSV",
+            "",
+            "CSV Files (*.csv);;All Files (*)",
+            options=options,
+        )
+        if not file_path:
+            return  # Brukeren avbrøt valg av fil
+
+        try:
+            # Hent alle passordoppføringer for den nåværende brukeren
+            password_entries = (
+                self.main_window.session.query(PasswordEntry)
+                .filter_by(user_id=self.main_window.user.id)
+                .all()
+            )
+
+            if not password_entries:
+                QMessageBox.information(
+                    self,
+                    "Ingen Passord",
+                    "Det finnes ingen passord å sikkerhetskopiere.",
+                    QMessageBox.Ok,
+                )
+                return
+
+            # Åpne CSV-filen for skriving
+            with open(file_path, mode="w", newline="", encoding="utf-8") as csv_file:
+                writer = csv.writer(csv_file)
+
+                # Skriv CSV-overskrifter
+                writer.writerow(
+                    ["Service", "Email", "Username", "Password", "Link", "Tag"]
+                )
+
+                # Skriv hver passordoppføring til CSV
+                for entry in password_entries:
+                    try:
+                        service = decrypt_password(
+                            entry.service, self.main_window.key["service"]
+                        )
+                        email = decrypt_password(
+                            entry.email, self.main_window.key["email"]
+                        )
+                        username = decrypt_password(
+                            entry.username, self.main_window.key["username"]
+                        )
+                        password = decrypt_password(
+                            entry.encrypted_password, self.main_window.key["password"]
+                        )
+                        link = (
+                            decrypt_password(entry.link, self.main_window.key["link"])
+                            if entry.link
+                            else ""
+                        )
+                        tag = (
+                            decrypt_password(entry.tag, self.main_window.key["tag"])
+                            if entry.tag
+                            else ""
+                        )
+
+                        writer.writerow([service, email, username, password, link, tag])
+                    except Exception as e:
+                        # Logg feilen og hopp over denne oppføringen
+                        print(
+                            f"Feil ved dekryptering av passord for tjeneste '{entry.service}': {str(e)}"
+                        )
+                        continue
+
+            # Informer brukeren om at backupen ble fullført
+            QMessageBox.information(
+                self,
+                "Backup Fullført",
+                f"Backup er lagret til:\n{file_path}\n(Vær oppmerksom på at filen inneholder sensitive data.)",
+                QMessageBox.Ok,
+            )
+
+        except Exception as e:
+            # Informer brukeren om at backupen feilet
+            QMessageBox.critical(
+                self,
+                "Backup Feilet",
+                f"Kunne ikke sikkerhetskopiere til CSV:\n{str(e)}",
+                QMessageBox.Ok,
+            )
