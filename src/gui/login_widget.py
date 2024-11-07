@@ -143,7 +143,7 @@ class LoginWidget(QWidget):
         main_layout.addLayout(bottom_buttons_layout, alignment=Qt.AlignHCenter)
         main_layout.addStretch()
 
-        # Hide confirm password fields in login mode
+        # Gjem confirm password fields i login mode
         if self.mode == "login":
             self.confirm_password_input.hide()
 
@@ -152,7 +152,6 @@ class LoginWidget(QWidget):
         self.init_ui_login()
 
     def init_ui_login(self):
-        # Bruk style_manager til å sette stiler på widgets
         self.style_manager.apply_password_input_style(self.username_input)
         self.style_manager.apply_password_input_style(self.password_input)
         self.style_manager.apply_password_input_style(self.confirm_password_input)
@@ -182,7 +181,7 @@ class LoginWidget(QWidget):
             self.password_input.clear()
             self.confirm_password_input.clear()
 
-            self.user_menu_button.setVisible(True)  # Vis "Bytt Bruker"-knappen igjen)
+            self.user_menu_button.setVisible(True)  # Vis "Bytt Bruker"-knappen igjen
 
     def on_ok(self):
         username = self.username_input.text().strip()
@@ -211,10 +210,10 @@ class LoginWidget(QWidget):
             if self.try_register_user(username, password):
                 QMessageBox.information(self, "Suksess", "Bruker opprettet!")
                 self.switch_mode()  # Bytt tilbake til innloggingsmodus
-                # Set the username back after switching modes
+                # Setter brukernavn etter man har byttet modus
                 self.username_input.setText(username)
                 self.password_input.setFocus()
-                # Only clear the password and confirm password fields, not the username
+                # tømmer passord feltene
                 self.password_input.clear()
                 self.confirm_password_input.clear()
                 # Oppdater "Bytt Bruker"-menyen
@@ -262,25 +261,23 @@ class LoginWidget(QWidget):
         self.confirm_password_input.clear()
 
     def populate_user_menu(self):
-        # Clear the menu first to avoid duplicates
+        # tømmer menyen for å unngå duplikater
         self.user_menu.clear()
 
-        # Get all users from the database via a query function
         all_users = self.login_manager.get_all_users()
 
         def create_user_action(user):
+            # viktig funksjon: eneste måten jeg fikk det til å fungere på
             return lambda checked: self.switch_to_user(user)
 
         for user in all_users:
-            # Create an action for each user that can be selected
+            # lag en valgbar action for hver bruker
             user_action = QAction(user, self)
             user_action.triggered.connect(create_user_action(user))
             self.user_menu.addAction(user_action)
 
     def switch_to_user(self, user):
-        # Update the username input with the selected username
         self.username_input.setText(user)
-        # Focus on the password field for easier login
         self.password_input.setFocus()
 
     def clear_sensitive_data(self):

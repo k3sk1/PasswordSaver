@@ -18,7 +18,6 @@ class StyleManager:
         self.theme = THEMES.get(theme_name, THEMES["default"])
 
     def apply_button_style(self, button):
-        # Skriv ut fargene som brukes
         button.setStyleSheet(
             BUTTON_STYLE.format(
                 button_background=self.theme["button_style_background"],
@@ -79,7 +78,6 @@ class StyleManager:
         )
 
     def apply_line_edit_style(self, widget):
-        # Check if it's a QComboBox or QSpinBox and apply the corresponding style
         if isinstance(widget, QComboBox) or isinstance(widget, QSpinBox):
             widget.setStyleSheet(
                 COMBO_BOX_STYLE.format(
@@ -118,7 +116,6 @@ class StyleManager:
         )
 
     def apply_side_panel_style(self, panel):
-        # Apply both background color and border for the side panel
         panel.setStyleSheet(
             f"""
             background-color: {self.theme['side_panel_background']};

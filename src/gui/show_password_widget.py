@@ -68,17 +68,13 @@ class ShowPasswordWidget(QWidget):
 
         # Opprett horisontal layout for knappene
         button_layout_1 = QHBoxLayout()
-        # button_layout_1.addStretch()  # Skyver knappene til høyre
         button_layout_1.addWidget(self.copy_button)
         button_layout_1.addWidget(self.delete_button)
-        # button_layout_1.addStretch()  # Skyver knappene til venstre og høyre
 
         # Opprett horisontal layout for den andre raden med knapper
         button_layout_2 = QHBoxLayout()
-        # button_layout_2.addStretch()  # Skyver knappene til høyre
         button_layout_2.addWidget(self.go_to_web_button)
         button_layout_2.addWidget(self.edit_button)
-        # button_layout_2.addStretch()  # Skyver knappene til venstre og høyre
 
         # Opprett en vertikal layout som holder begge radene
         button_layout = QVBoxLayout()

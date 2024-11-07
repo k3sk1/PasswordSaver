@@ -12,13 +12,13 @@ def main():
     # Sett global font
     app.setFont(styles.GLOBAL_FONT)
 
-    # Get a writable directory for the database (e.g., user's home directory)
+    # finn en mappe for databasen
     user_home_dir = os.path.expanduser("~")
     data_dir = os.path.join(
         user_home_dir, "PassordSkapData"
-    )  # Create a folder for app data
+    )  # Lag en mappe for app data
     if not os.path.exists(data_dir):
-        os.makedirs(data_dir)  # Create the directory if it doesn't exist
+        os.makedirs(data_dir)
 
     db_path = os.path.join(data_dir, "passwords.db")
 
@@ -27,7 +27,7 @@ def main():
 
     # Opprett hovedvinduet
     main_window = MainWindow(None, login_manager.session, None, db_path)
-    main_window.login_manager = login_manager  # Sett login manager som en attributt
+    main_window.login_manager = login_manager
     main_window.show()
 
     sys.exit(app.exec_())

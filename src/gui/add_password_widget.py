@@ -142,7 +142,6 @@ class AddPasswordWidget(QWidget):
         self.setLayout(main_layout)
 
     def init_ui_add_pw(self):
-        # Bruk style_manager til å sette stiler på widgets
         self.main_window.style_manager.apply_label_style(self.email_label)
         self.main_window.style_manager.apply_label_style(self.username_label)
         self.main_window.style_manager.apply_label_style(self.password_label)
@@ -299,7 +298,7 @@ class AddPasswordWidget(QWidget):
         # Sett sammen ordene med en bindestrek
         passord = "-".join(passord_ord)
 
-        # Skriv passordet inn i passordfeltet automatisk
+        # Skriv passordet inn i passordfeltet
         self.password_input.setText(passord)
 
     def get_data(self):

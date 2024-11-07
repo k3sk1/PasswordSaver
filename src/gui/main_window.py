@@ -31,7 +31,6 @@ class MainWindow(QMainWindow):
         self.style_manager = StyleManager()
 
         self.setWindowTitle("Passordskapet")
-        # Sett en fast størrelse på vinduet
 
         # Initialize key, session og user
         self.key = key
@@ -79,7 +78,6 @@ class MainWindow(QMainWindow):
     def create_side_panel(self, main_layout):
         # Sidepanel for knappene
         self.side_panel = QWidget()
-        # Apply dynamic style using the StyleManager
         self.style_manager.apply_side_panel_style(self.side_panel)
         side_layout = QVBoxLayout()
         self.side_panel.setLayout(side_layout)
@@ -88,7 +86,7 @@ class MainWindow(QMainWindow):
         side_layout.setSpacing(20)
         side_layout.setAlignment(Qt.AlignTop)
 
-        # Add buttons
+        # legg til buttons
         self.add_password_button = QPushButton("Legg til passord")
         self.view_password_button = QPushButton("Vis passord")
         self.backup_button = QPushButton("Sikkerhetskopiering")
@@ -96,14 +94,19 @@ class MainWindow(QMainWindow):
         self.log_out_button = QPushButton("Logg ut og bytt bruker")
         self.log_out_quit_button = QPushButton("Logg ut og avslutt")
 
-        # Apply button styles
+        # Legger til knappestiler
         self.init_ui()
 
         # Koble knappene til funksjoner
         self.add_password_button.clicked.connect(self.show_add_password_widget)
         self.view_password_button.clicked.connect(self.show_show_password_widget)
-        self.backup_button.clicked.connect(self.show_backup_widget)
-        self.settings_button.clicked.connect(self.open_settings)
+        self.backup_button.clicked.connect(
+            lambda: self.switch_to_widget(self.backup_widget)
+        )
+        self.settings_button.clicked.connect(
+            lambda: self.switch_to_widget(self.settings_widget)
+        )
+
         self.log_out_button.clicked.connect(self.log_out)
         self.log_out_quit_button.clicked.connect(self.log_out_quit)
 
@@ -114,8 +117,6 @@ class MainWindow(QMainWindow):
         side_layout.addWidget(self.settings_button)
         # Legg til et strekk-element for å skyve logg ut-knappene til bunnen
         side_layout.addStretch()
-
-        # Legg logg ut-knappene nederst
         side_layout.addWidget(self.log_out_button)
         side_layout.addWidget(self.log_out_quit_button)
 
@@ -165,15 +166,8 @@ class MainWindow(QMainWindow):
         self.show_password_widget.load_passwords()
         self.stack.setCurrentWidget(self.show_password_widget)
 
-    def show_backup_widget(self):
-        self.stack.setCurrentWidget(self.backup_widget)
-
     def switch_to_widget(self, widget):
         self.stack.setCurrentWidget(widget)
-
-    def open_settings(self):
-        # Bytt til settings_widget i stacken
-        self.stack.setCurrentWidget(self.settings_widget)
 
     def apply_settings_and_save(self, settings):
         theme, font_size = settings
@@ -218,13 +212,11 @@ class MainWindow(QMainWindow):
             self.style_manager = StyleManager(theme)
             self.init_ui()
 
-            # Apply central widget style directly here to ensure it's updated
+            # main window style og stack style må bli satt direkte her - mulig det kan endres nå
             self.style_manager.apply_central_widget_style(self.central_widget)
-
-            # Apply stack background color again to ensure it's updated with the new theme
             self.style_manager.apply_stack_style(self.stack)
 
-            # Emit signalet etter at temaet har blitt brukt
+            # Sender ut signal etter vi har byttet tema
             self.theme_changed.emit()
 
     def apply_font_size(self, font_size):
@@ -293,7 +285,7 @@ class MainWindow(QMainWindow):
         # Vis sidepanelet etter vellykket innlogging
         self.side_panel.setVisible(True)
 
-        # Sjekk antall passord og oppdater knappene (initialiser status)
+        # Sjekk antall passord og oppdater knappene
         self.update_button_states()
 
         self.setMinimumSize(0, 0)
@@ -303,7 +295,6 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.placeholder_widget)
 
     def init_ui(self):
-        # Apply updated styles
         self.style_manager.apply_button_style_1(self.add_password_button)
         self.style_manager.apply_button_style(self.view_password_button)
         self.style_manager.apply_button_style(self.backup_button)

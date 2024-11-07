@@ -36,15 +36,15 @@ THEMES = {
         "selected_row_text_color_table": "#FFFFFF",  # Tekstfarge for valgte tabellrader
     },
     "vintage": {
-        "background": "#a3f08e",  # Bakgrunnsfargen for hovedvinduet (Central widget) - fungerer
+        "background": "#a3f08e",  # Bakgrunnsfargen for hovedvinduet (Central widget)
         "stack_background": "#e0cda9",  # Bakgrunnsfargen for QStackedWidget
-        "button_hover_color": "#f08edb",  # Standard tekstfarge som brukes på etiketter, knapper, etc. - fungerer
+        "button_hover_color": "#f08edb",  # Standard tekstfarge som brukes på etiketter, knapper, etc.
         "button_hover_color_1": "#4CAF50",  # (grønn)
         "button_hover_color_2": "#D32F2F",  # (rød)
-        "button_style_background": "#333333",  # Tekstfarge for button style knapper - fungerer
+        "button_style_background": "#333333",  # Tekstfarge for button style knapper
         "button_style_circle_background": "#a6c4be",  # bakgrunnsfarge på sirkel knapp med solbriller/øye
-        "button_text": "#ffffff",  # Tekstfarge for knapper - fungerer
-        "input_background": "#d3c90d",  # Bakgrunnsfarge for inndatafelter (QLineEdit) - fungerer
+        "button_text": "#ffffff",  # Tekstfarge for knapper
+        "input_background": "#d3c90d",  # Bakgrunnsfarge for inndatafelter (QLineEdit)
         "widget_background": "#f0e68c",  # Bakgrunnsfarge for widgets generelt
         "side_panel_background": "#b4a19e",  # Side panel background color
         "side_panel_border": "5px solid #333333",  # Side panel background color

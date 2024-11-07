@@ -21,7 +21,7 @@ class LoginManager:
         if not user:
             return (None, None, "Bruker eksisterer ikke.")
 
-        # Check if user is locked out
+        # sjekk om bruker er låst ute
         current_time = datetime.datetime.now()
         if user.lockout_until and current_time < user.lockout_until:
             lockout_remaining = user.lockout_until - current_time
@@ -42,7 +42,7 @@ class LoginManager:
                     "link": derive_key_for_column(password, salt, "link"),
                     "tag": derive_key_for_column(password, salt, "tag"),
                 }
-                # Reset failed attempts on successful login
+                # Reseter mislykket forsøk når man klarer å logge inn
                 user.failed_attempts = 0
                 user.lockout_until = None
                 self.session.commit()
@@ -51,7 +51,7 @@ class LoginManager:
                 user.failed_attempts += 1
                 user.last_failed_attempt = current_time
 
-                # Lock out user if failed attempts exceed threshold
+                # Låser ute bruker hvis mislykket forsøk er over gitt grense
                 if user.failed_attempts >= 3:
                     lockout_duration = datetime.timedelta(
                         minutes=5 * user.failed_attempts

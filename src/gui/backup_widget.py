@@ -159,7 +159,7 @@ class BackupWidget(QWidget):
             options=QFileDialog.ReadOnly,
         )
         if not backup_file:
-            return  # Bruker avbrøt
+            return
 
         # Velg en midlertidig mappe for dekryptering
         with tempfile.TemporaryDirectory() as temp_dir:
